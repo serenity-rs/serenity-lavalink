@@ -1,2 +1,5 @@
 serenity-lavalink.iml
-.idea/*
+.idea
+.env
+Cargo.lock
+target
