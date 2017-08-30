@@ -55,9 +55,15 @@ fn main() {
     // loading some tracks for fun!
     {
         let mut http_client = HttpClient::new(&mut core, "http://localhost:2333", "password");
-        let request = http_client.create_request("/loadtracks?identifier=ytsearch:ncs%20my%20heart", None);
+        /*let request = http_client.create_request("/loadtracks?identifier=ytsearch:ncs%20my%20heart", None);
         let response = http_client.run_request(request);
-        println!("response: {}", String::from_utf8_lossy(&response));
+        println!("response: {}", String::from_utf8_lossy(&response));*/
+
+        let tracks = http_client.load_tracks("ytsearch:ncs%20my%20heart");
+
+        for track in &tracks {
+            println!("loaded track {} by {}", track.info.title, track.info.author);
+        }
     }
 
     // lets create a new thread for lavalink to run on

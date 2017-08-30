@@ -1,9 +1,12 @@
+extern crate serde_json; // idk why this is required for serde_json's functions
+
 use hyper::{Client, Request, Response, Method, Body, Result, Error};
 use hyper::client::{HttpConnector, FutureResponse};
 use hyper::header::ContentType;
 use hyper_tls::HttpsConnector;
 use tokio_core::reactor::Core;
 use futures::{future, Future, Stream};
+use serde::Deserialize;
 
 pub struct HttpClient<'a> {
     core: &'a mut Core,
@@ -27,7 +30,7 @@ impl<'a> HttpClient<'a> {
         }
     }
 
-    pub fn create_request<'c>(&self, uri: &'c str, body: Option<Vec<u8>>) -> Request {
+    pub fn create_request(&self, uri: &str, body: Option<Vec<u8>>) -> Request {
         let uri = (self.host.clone() + uri).parse().expect("could not parse uri");
 
         let mut req = Request::new(Method::Get, uri);
@@ -53,23 +56,34 @@ impl<'a> HttpClient<'a> {
 
         self.core.run(task).expect("an error occured when sending http request")
     }
+
+    pub fn load_tracks(&mut self, identifier: &str) -> Vec<LoadedTrack> {
+        let uri = format!("/loadtracks?identifier={}", identifier);
+        let request = self.create_request(uri.as_ref(), None);
+
+        let response = self.run_request(request);
+        let deserialized: Vec<LoadedTrack> = serde_json::from_slice(&response).unwrap();
+
+        deserialized
+    }
 }
 
-/*pub fn load_tracks(http_client: &HttpClient, identifier: &str) {
-    let handle = core.handle();
-    let client = Client::configure()
-        .connector(HttpsConnector::new(4, &handle).unwrap())
-        .build(&handle);
+#[derive(Debug, Deserialize)]
+pub struct LoadedTrackInfo {
+    pub title: String,
+    pub author: String,
+    pub length: i64,
+    pub identifier: String,
+    pub uri: String,
+    #[serde(rename = "isStream")]
+    pub is_stream: bool,
+    #[serde(rename = "isSeekable")]
+    pub is_seekable: bool,
+    pub position: i64,
+}
 
-    let uri = format!("{}/loadtracks?identifier={}", host, identifier).parse()
-        .expect("could not parse uri");
-
-    let mut req = Request::new(Method::Get, uri);
-    req.headers_mut().set_raw("Authorization", password);
-
-    let task = client.request(req).map(|res| {
-        println!("status: {}", res.status());
-    });
-
-    core.run(task).expect("an error occured when sending a request");
-}*/
+#[derive(Debug, Deserialize)]
+pub struct LoadedTrack {
+    pub track: String,
+    pub info: LoadedTrackInfo,
+}
