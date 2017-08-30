@@ -1,12 +1,10 @@
 extern crate serde_json; // idk why this is required for serde_json's functions
 
-use hyper::{Client, Request, Response, Method, Body, Result, Error};
-use hyper::client::{HttpConnector, FutureResponse};
-use hyper::header::ContentType;
+use hyper::{Client, Request, Method, Body, Error};
+use hyper::client::HttpConnector;
 use hyper_tls::HttpsConnector;
 use tokio_core::reactor::Core;
 use futures::{future, Future, Stream};
-use serde::Deserialize;
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 
 pub struct HttpClient<'a> {
@@ -31,7 +29,7 @@ impl<'a> HttpClient<'a> {
         }
     }
 
-    pub fn create_request(&self, uri: &str, body: Option<Vec<u8>>) -> Request {
+    fn create_request(&self, uri: &str, body: Option<Vec<u8>>) -> Request {
         let uri = (self.host.clone() + uri).parse().expect("could not parse uri");
 
         let mut req = Request::new(Method::Get, uri);
@@ -44,7 +42,7 @@ impl<'a> HttpClient<'a> {
         req
     }
 
-    pub fn run_request(&mut self, request: Request) -> Vec<u8> {
+    fn run_request(&mut self, request: Request) -> Vec<u8> {
         let task = self.client.request(request).and_then(|response| {
             println!("response status: {}", response.status());
 

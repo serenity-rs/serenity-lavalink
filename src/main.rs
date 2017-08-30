@@ -14,7 +14,7 @@ mod commands;
 mod lavalink;
 mod handler;
 
-use lavalink::rest::{self, HttpClient};
+use lavalink::rest::HttpClient;
 use lavalink::socket::Socket;
 
 use std::env;
