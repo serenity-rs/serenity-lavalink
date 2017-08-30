@@ -70,7 +70,7 @@ fn main() {
 
         let messages = vec![
             OwnedMessage::Text("hey lol whats up".to_owned()),
-            OwnedMessage::Ping(vec![]),
+            OwnedMessage::Ping("ur fat lmao".as_bytes().to_vec()),
             OwnedMessage::Text("dab real hard".to_owned()),
         ];
 
@@ -84,6 +84,12 @@ fn main() {
                 Err(e) => { println!("oh no! {:?}", e); }
             }
         }
+
+        {
+            let socket_state = socket.state.lock().unwrap(); // unlock mutex, get state
+            let stats = socket_state.stats.clone().unwrap(); // copy remote stats
+            println!("node stats: {:?}", stats);
+        } // lock mutex
 
         socket.close();
     });

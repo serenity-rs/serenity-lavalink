@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FrameStats {
     // average frames sent per minute
     sent: i32,
@@ -10,7 +10,7 @@ pub struct FrameStats {
     deficit: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RemoteStats {
     pub players: i32,
     pub playing_players: i32,

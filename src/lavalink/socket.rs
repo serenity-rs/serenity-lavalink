@@ -4,6 +4,7 @@ use super::opcodes::*;
 use super::stats::*;
 
 use std::thread::{self, Thread, JoinHandle};
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::io::stdin;
 use std::str::FromStr;
@@ -18,10 +19,21 @@ use serde_json::{Value, Error};
 
 const WEBSOCKET_PROTOCOL: &'static str = "rust-websocket";
 
+pub struct SocketState {
+    pub stats: Option<RemoteStats>,
+}
+
+impl SocketState {
+    fn new() -> Self {
+        Self { stats: None, }
+    }
+}
+
 pub struct Socket {
     pub tx: Sender<OwnedMessage>,
     pub send_loop: JoinHandle<()>,
     pub recv_loop: JoinHandle<()>,
+    pub state: Arc<Mutex<SocketState>>,
 }
 
 impl Socket {
@@ -41,18 +53,13 @@ impl Socket {
         let (mut receiver, mut sender) = client.split().unwrap();
 
         let (tx, rx) = channel();
-
-        // create a clone because thread::spawn(move... takes ownership of tx & we want to send
-        // into the channel from multiple threads
         let tx_1 = tx.clone();
 
-        // tbis loop waits for a new message in the rx channel. once the message has been received
-        // it sends it to the websocket via the client's sender
+        let state = Arc::new(Mutex::new(SocketState::new()));
+
         let send_loop = thread::spawn(move || {
             loop {
-                // send loop
                 let message = match rx.recv() {
-                    // blocking call, waits for a message in rx channel
                     Ok(m) => m,
                     Err(e) => {
                         println!("Send loop: {:?}", e);
@@ -60,21 +67,18 @@ impl Socket {
                     }
                 };
 
+                // handle close message, exit loop
                 match message {
-                    // if it is a close message send the message and then return; to exit the loop
                     OwnedMessage::Close(_) => {
                         let _ = sender.send_message(&message);
                         return;
                     },
-                    // otherwise continue
                     _ => (),
                 }
 
-                // send the message
                 match sender.send_message(&message) {
-                    Ok(()) => (), // message was sent successfully
+                    Ok(_) => (),
                     Err(e) => {
-                        // oh no an error occurred when sending the message
                         println!("Send loop: {:?}", e);
                         let _ = sender.send_message(&Message::close());
                         return;
@@ -83,15 +87,12 @@ impl Socket {
             }
         });
 
-        // this loop waits for a new message to from the websocket server
+        let recv_state = state.clone(); // clone state for the recv loop otherwise ownership passed
+
         let recv_loop = thread::spawn(move || {
-            // receiver.incoming_messages() is a blocking call that waits for the next message
             for message in receiver.incoming_messages() {
                 let message = match message {
-                    // woo message came in and its not broken!!
                     Ok(m) => m,
-                    // oopsie that message is fucked lmao, send a close message into the sending
-                    // channel and then exit out of the loop to stop the thread execution
                     Err(e) => {
                         println!("Receive loop: {:?}", e);
                         let _ = tx_1.send(OwnedMessage::Close(None));
@@ -100,15 +101,11 @@ impl Socket {
                 };
 
                 match message {
-                    // the server sent a close message so send a close message into the sending
-                    // channel to kill the sending thread, then return to exit out of the loop and
-                    // stop the thread execution
+                    // sever sent close msg, pass to send loop & break from loop
                     OwnedMessage::Close(_) => {
                         let _ = tx_1.send(OwnedMessage::Close(None));
                         return;
                     },
-                    // hehe the server sent a ping :) lets send a pong to the sending channel in
-                    // response my dude
                     OwnedMessage::Ping(data) => {
                         match tx_1.send(OwnedMessage::Pong(data)) {
                             Ok(()) => (), // ponged well
@@ -119,7 +116,6 @@ impl Socket {
                             }
                         }
                     },
-                    // text msg!!!!!!!!
                     OwnedMessage::Text(data) => {
                         println!("Receive loop text message: {}", data);
 
@@ -136,7 +132,9 @@ impl Socket {
                             PlayerUpdate => {},
                             Stats => {
                                 let stats = RemoteStats::from_json(&json);
-                                println!("Stats = {:?}", stats);
+
+                                let mut state = recv_state.lock().unwrap();
+                                state.stats = Some(stats);
                             },
                             Event => {
                                 let _guild_id = json["guildId"].as_str().unwrap();
@@ -162,7 +160,7 @@ impl Socket {
                             _ => {},
                         }
                     },
-                    // received something else?
+                    // probably wont happen
                     _ => {
                         println!("Receive loop: {:?}", message)
                     }
@@ -174,6 +172,7 @@ impl Socket {
             tx,
             send_loop,
             recv_loop,
+            state,
         }
     }
 
