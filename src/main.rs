@@ -21,41 +21,32 @@ use std::env;
 use std::thread;
 use std::time::Duration;
 
-use serenity::client::CACHE;
 use serenity::framework::StandardFramework;
-use serenity::model::*;
 use serenity::prelude::*;
-use serenity::voice;
-use serenity::Result as SerenityResult;
-
 use dotenv::dotenv;
-
 use websocket::OwnedMessage;
-
 use tokio_core::reactor::Core;
 
 fn main() {
     // load .env into environment variables
     let _ = dotenv();
 
-    // serenity stuff
-    let token = env::var("DISCORD_TOKEN")
-        .expect("erm lol wheres ur DISCORD_TOKEN");
+    // getting environment variables
+    let discord_token = env::var("DISCORD_TOKEN").unwrap();
 
-    let mut client = Client::new(&token, handler::Handler);
-
-    client.with_framework(StandardFramework::new()
-        .configure(|c| c
-            .prefix("!")
-            .on_mention(true))
-        .on("ping", commands::meta::ping));
+    let lavalink_http_host = env::var("LAVALINK_HTTP_HOST").unwrap();
+    let lavalink_websocket_host = env::var("LAVALINK_WEBSOCKET_HOST").unwrap();
+    let lavalink_user_id = env::var("LAVALINK_USER_ID").unwrap();
+    let lavalink_password = env::var("LAVALINK_PASSWORD").unwrap();
+    let lavalink_num_shards = env::var("LAVALINK_NUM_SHARDS")
+        .map(|num_shards| num_shards.parse::<i32>().unwrap()).unwrap();
 
     // lavalink stuff
     let mut core = Core::new().unwrap();
 
     // loading some tracks for fun!
     {
-        let mut http_client = HttpClient::new(&mut core, "http://localhost:2333", "password");
+        let mut http_client = HttpClient::new(&mut core, &lavalink_http_host, &lavalink_password);
 
         let tracks = http_client.load_tracks("ytsearch:ncs my heart");
 
@@ -65,8 +56,9 @@ fn main() {
     }
 
     // lets create a new thread for lavalink to run on
-    let lavalink_handle = thread::spawn(|| {
-        let socket = Socket::open("ws://localhost:8012", "test-user-id", "password", 1);
+    let lavalink_handle = thread::spawn(move || {
+        let socket = Socket::open(&lavalink_websocket_host, &lavalink_user_id, &lavalink_password,
+                                  lavalink_num_shards);
 
         let messages = vec![
             OwnedMessage::Text("hey lol whats up".to_owned()),
@@ -94,9 +86,18 @@ fn main() {
         socket.close();
     });
 
-    // start the discord client on the main thread
+    // serenity stuff
+    let mut client = Client::new(&discord_token, handler::Handler);
+
+    client.with_framework(StandardFramework::new()
+        .configure(|c| c
+            .prefix("!")
+            .on_mention(true))
+        .on("ping", commands::meta::ping));
+
     //let _ = client.start()
     //    .map_err(|err| println!("serenity client ended: {:?}", err));
 
-    let _ = lavalink_handle.join(); // wait for the lavalink thread to finish
+    // wait for the lavalink thread to finish
+    let _ = lavalink_handle.join();
 }

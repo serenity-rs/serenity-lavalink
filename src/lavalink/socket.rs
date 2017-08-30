@@ -14,7 +14,6 @@ use std::rc::Rc;
 use websocket::{Message, OwnedMessage};
 use websocket::client::ClientBuilder;
 use websocket::header::Headers;
-
 use serde_json::{Value, Error};
 
 const WEBSOCKET_PROTOCOL: &'static str = "rust-websocket";
