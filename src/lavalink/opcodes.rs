@@ -4,39 +4,54 @@ use std::str::FromStr;
 #[derive(Debug)]
 pub enum Opcode {
     // Make the server queue a voice connection
+    // guild_id: String, channel_id: String
     Connect,
 
     // Provide an intercepted voice server update
+    // session_id: String, event: String
     VoiceUpdate,
 
     // Close a voice connection
+    // guild_id: String
     Disconnect,
 
     // Request to check if the VC or Guild exists, and that we have access to the VC
     ValidationRequest,
 
     // Response to ValidationRequest
+    // guild_id: String, channel_id: Option<String>, valid: bool
+    // IMPLEMENTATION.md: channel_id is omitted if the request does not display the channel id
+    // I think using Option<String> and not including when serializing is the best option here
     ValidationResponse,
 
     // Request to check if a shard's mainWS is connected
     IsConnectedRequest,
 
     // Response to IsConnectedRequest
+    // shard_id: i32, connected: bool
     IsConnectedResponse,
 
     // Cause the player to play a track
+    // guild_id: String, track: String, start_time: ?
+    // IMPLEMENTATION.md has start_time as "60000" so todo check the data type it is expecting
     Play,
 
     // Cause the player to stop
+    // guild_id: String
     Stop,
 
     // Set player pause
+    // guild_id: String, pause: bool
     Pause,
 
     // Make the player seek to a position of the track
+    // guild_id: String, position: i64
+    // here the position is not shown as a string in IMPLEMENTATION.md? todo check data types
     Seek,
 
     // Set player volume
+    // guild_id: String, volume: i32
+    // IMPLEMENTATION.md: Volume may range from 0 to 150. 100 is default.
     Volume,
 
     // Incoming message to forward to mainWS
@@ -60,24 +75,25 @@ impl ToString for Opcode {
         use self::Opcode::*;
 
         match *self {
-            Connect => "connect",
-            VoiceUpdate => "voiceUpdate",
-            Disconnect => "disconnect",
-            ValidationRequest => "validationReq",
-            ValidationResponse => "validationRes",
-            IsConnectedRequest => "isConnectedReq",
-            IsConnectedResponse => "isConnectedRes",
-            Play => "play",
-            Stop => "stop",
-            Pause => "pause",
-            Seek => "seek",
-            Volume => "volume",
-            SendWS => "sendWS",
-            PlayerUpdate => "playerUpdate",
-            Stats => "stats",
-            Event => "event",
-            Unknown => "unknown",
-        }.to_string()
+            ValidationRequest => "validationReq".to_owned(),
+            ValidationResponse => "validationResponse".to_owned(),
+            IsConnectedRequest => "isConnectedReq".to_owned(),
+            IsConnectedResponse => "isConnectedRes".to_owned(),
+            _ => {
+                // convert opcode's fmt::Debug name to lowerCamelCase
+                let mut buf = String::new();
+
+                for (i, c) in format!("{:?}", *self).chars().enumerate() {
+                    if c.is_uppercase() && i == 0 {
+                        let _ = buf.push_str(c.to_lowercase().to_string().as_ref());
+                    } else {
+                        let _ = buf.push(c);
+                    }
+                }
+
+                buf
+            },
+        }
     }
 }
 
