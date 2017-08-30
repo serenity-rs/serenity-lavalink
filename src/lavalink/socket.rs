@@ -139,18 +139,18 @@ impl Socket {
                                 println!("Stats = {:?}", stats);
                             },
                             Event => {
-                                let guild_id = json["guildId"].as_str().unwrap();
-                                let track = json["track"].as_str().unwrap();
+                                let _guild_id = json["guildId"].as_str().unwrap();
+                                let _track = json["track"].as_str().unwrap();
 
                                 match json["type"].as_str().unwrap() {
                                     "TrackEndEvent" => {
-                                        let reason = json["reason"].as_str().unwrap();
+                                        let _reason = json["reason"].as_str().unwrap();
                                     },
                                     "TrackExceptionEvent" => {
-                                        let error = json["error"].as_str().unwrap();
+                                        let _error = json["error"].as_str().unwrap();
                                     },
                                     "TrackStuckEvent" => {
-                                        let threshold_ms = json["thresholdMs"].as_i64().unwrap();
+                                        let _threshold_ms = json["thresholdMs"].as_i64().unwrap();
                                     },
                                     unexpected => {
                                         println!("Unexpected event type: {}", unexpected)
@@ -178,7 +178,7 @@ impl Socket {
     }
 
     pub fn close(self) {
-        let _ = self.tx.clone().send(OwnedMessage::Close(None));
+        let _ = self.tx.send(OwnedMessage::Close(None));
 
         let _ = self.send_loop.join();
         let _ = self.recv_loop.join();
