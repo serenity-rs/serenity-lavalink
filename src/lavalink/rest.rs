@@ -7,6 +7,7 @@ use hyper_tls::HttpsConnector;
 use tokio_core::reactor::Core;
 use futures::{future, Future, Stream};
 use serde::Deserialize;
+use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 
 pub struct HttpClient<'a> {
     core: &'a mut Core,
@@ -58,6 +59,9 @@ impl<'a> HttpClient<'a> {
     }
 
     pub fn load_tracks(&mut self, identifier: &str) -> Vec<LoadedTrack> {
+        // url encoding the identifier
+        let identifier = utf8_percent_encode(identifier, DEFAULT_ENCODE_SET);
+
         let uri = format!("/loadtracks?identifier={}", identifier);
         let request = self.create_request(uri.as_ref(), None);
 
