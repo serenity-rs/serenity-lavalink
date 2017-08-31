@@ -126,8 +126,47 @@ impl Socket {
 
                         match opcode {
                             SendWS => {},
-                            ValidationRequest => {},
-                            IsConnectedRequest => {},
+                            ValidationRequest => {
+                                // todo actually check lmao
+
+                                let guild_id = json["guildId"].as_str().unwrap();
+                                let channel_id = json["channelId"].as_str();
+
+                                println!("channel_id: {:?}", &channel_id);
+
+                                let json = match channel_id {
+                                    Some(channel_id) => {
+                                        json!({
+                                            "op": ValidationResponse.to_string(),
+                                            "guildId": guild_id,
+                                            "channelId": channel_id,
+                                            "valid": true,
+                                        })
+                                    },
+                                    None => {
+                                        json!({
+                                            "op": ValidationResponse.to_string(),
+                                            "guildId": guild_id,
+                                            "valid": true,
+                                        })
+                                    }
+                                };
+
+                                let _ = tx_1.send(OwnedMessage::Text(json.to_string()));
+                            },
+                            IsConnectedRequest => {
+                                // todo lmoo
+
+                                let shard_id = json["shardId"].as_i64().unwrap();
+
+                                let json = json!({
+                                    "op": IsConnectedResponse.to_string(),
+                                    "shardId": shard_id,
+                                    "connected": true,
+                                });
+
+                                let _ = tx_1.send(OwnedMessage::Text(json.to_string()));
+                            },
                             PlayerUpdate => {},
                             Stats => {
                                 let stats = RemoteStats::from_json(&json);

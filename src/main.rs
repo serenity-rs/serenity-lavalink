@@ -2,7 +2,7 @@
 extern crate dotenv;
 extern crate websocket;
 extern crate serde;
-extern crate serde_json;
+#[macro_use] extern crate serde_json;
 #[macro_use] extern crate serde_derive;
 extern crate hyper;
 extern crate hyper_tls;
@@ -15,14 +15,19 @@ mod lavalink;
 mod handler;
 
 use lavalink::rest::HttpClient;
+use lavalink::opcodes::Opcode;
 use lavalink::socket::Socket;
 
 use std::env;
 use std::thread;
 use std::time::Duration;
 
+use serenity::client::CACHE;
 use serenity::framework::StandardFramework;
+use serenity::model::*;
 use serenity::prelude::*;
+use serenity::voice;
+use serenity::Result as SerenityResult;
 use dotenv::dotenv;
 use websocket::OwnedMessage;
 use tokio_core::reactor::Core;
@@ -41,11 +46,9 @@ fn main() {
     let lavalink_num_shards = env::var("LAVALINK_NUM_SHARDS")
         .map(|num_shards| num_shards.parse::<i32>().unwrap()).unwrap();
 
-    // lavalink stuff
-    let mut core = Core::new().unwrap();
-
-    // loading some tracks for fun!
-    {
+    // load some lavalink tracks!!
+    /*{
+        let mut core = Core::new().unwrap();
         let mut http_client = HttpClient::new(&mut core, &lavalink_http_host, &lavalink_password);
 
         let tracks = http_client.load_tracks("ytsearch:ncs my heart");
@@ -53,51 +56,36 @@ fn main() {
         for track in &tracks {
             println!("loaded track {} by {}", track.info.title, track.info.author);
         }
-    }
+    }*/
 
     // lets create a new thread for lavalink to run on
     let lavalink_handle = thread::spawn(move || {
         let socket = Socket::open(&lavalink_websocket_host, &lavalink_user_id, &lavalink_password,
                                   lavalink_num_shards);
 
-        let messages = vec![
-            OwnedMessage::Text("hey lol whats up".to_owned()),
-            OwnedMessage::Ping("ur fat lmao".as_bytes().to_vec()),
-            OwnedMessage::Text("dab real hard".to_owned()),
-        ];
-
-        for message in messages {
-            let copy_of_message = message.clone();
-
-            thread::sleep(Duration::from_millis(5000));
-
-            match socket.tx.send(message) {
-                Ok(_) => { println!("sent {:?}", copy_of_message); },
-                Err(e) => { println!("oh no! {:?}", e); }
-            }
-        }
-
-        {
-            let socket_state = socket.state.lock().unwrap(); // unlock mutex, get state
-            let stats = socket_state.stats.clone().unwrap(); // copy remote stats
-            println!("node stats: {:?}", stats);
-        } // lock mutex
-
-        socket.close();
+        // say join the voice channel lol
+        let _ = socket.tx.send(OwnedMessage::Text(json!({
+            "op": Opcode::Connect.to_string(),
+            "guildId": "272410239947767808",
+            "channelId": "320643590986399749",
+        }).to_string()));
     });
 
-    // serenity stuff
+    // serenity!!!
     let mut client = Client::new(&discord_token, handler::Handler);
 
     client.with_framework(StandardFramework::new()
         .configure(|c| c
             .prefix("!")
             .on_mention(true))
-        .on("ping", commands::meta::ping));
+        .on("ping", commands::meta::ping)
+        .on("join", commands::voice::join)
+        .on("leave", commands::voice::leave));
 
-    //let _ = client.start()
-    //    .map_err(|err| println!("serenity client ended: {:?}", err));
+    let _ = client.start()
+        .map_err(|err| println!("serenity client ended: {:?}", err));
 
     // wait for the lavalink thread to finish
-    let _ = lavalink_handle.join();
+    //let _ = lavalink_handle.join();
+
 }

@@ -76,7 +76,7 @@ impl ToString for Opcode {
 
         match *self {
             ValidationRequest => "validationReq".to_owned(),
-            ValidationResponse => "validationResponse".to_owned(),
+            ValidationResponse => "validationRes".to_owned(),
             IsConnectedRequest => "isConnectedReq".to_owned(),
             IsConnectedResponse => "isConnectedRes".to_owned(),
             _ => {
