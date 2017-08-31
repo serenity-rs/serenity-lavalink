@@ -9,6 +9,7 @@ extern crate hyper_tls;
 extern crate tokio_core;
 extern crate futures;
 extern crate percent_encoding;
+extern crate typemap;
 
 mod commands;
 mod lavalink;
@@ -63,18 +64,16 @@ fn main() {
         }
     }
 
-    // lets create a new thread for lavalink to run on
-    let lavalink_handle = thread::spawn(move || {
-        let socket = Socket::open(&lavalink_websocket_host, &lavalink_user_id, &lavalink_password,
-                                  lavalink_num_shards);
+    // start the lavalink socket!!
+    let socket = Socket::open(&lavalink_websocket_host, &lavalink_user_id, &lavalink_password,
+                              lavalink_num_shards);
 
-        // say join the voice channel lol
-        let _ = socket.tx.send(OwnedMessage::Text(json!({
+    // say join the voice channel lol
+    let _ = socket.tx.send(OwnedMessage::Text(json!({
             "op": Opcode::Connect.to_string(),
             "guildId": "272410239947767808",
             "channelId": "320643590986399749",
         }).to_string()));
-    });
 
     // serenity!!!
     let mut client = Client::new(&discord_token, handler::Handler);
@@ -83,14 +82,19 @@ fn main() {
         .configure(|c| c
             .prefix("!")
             .on_mention(true))
+        .on("stop", commands::admin::stop)
         .on("ping", commands::meta::ping)
         .on("join", commands::voice::join)
         .on("leave", commands::voice::leave));
 
+    {
+        let data = &mut *client.data.lock();
+        let _ = data.insert::<commands::admin::CloseHandleKey>(client.close_handle().clone());
+    }
+
     let _ = client.start()
         .map_err(|err| println!("serenity client ended: {:?}", err));
 
-    // wait for the lavalink thread to finish
-    //let _ = lavalink_handle.join();
-
+    // close the lavalink socket
+    socket.close();
 }

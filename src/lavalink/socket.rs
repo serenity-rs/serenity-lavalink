@@ -215,6 +215,8 @@ impl Socket {
     }
 
     pub fn close(self) {
+        println!("closing lavalink socket!");
+
         let _ = self.tx.send(OwnedMessage::Close(None));
 
         let _ = self.send_loop.join();

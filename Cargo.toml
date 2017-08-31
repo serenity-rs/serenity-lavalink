@@ -14,6 +14,7 @@ serde_derive = "1.0.11"
 hyper = "0.11.0"
 hyper-tls = "0.1.0"
 percent-encoding = "1.0.0"
+typemap = "0.3.3"
 
 [dependencies.serenity]
 git = "https://github.com/zeyla/serenity"
