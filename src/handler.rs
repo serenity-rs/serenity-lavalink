@@ -1,3 +1,4 @@
+use serenity::voice;
 use serenity::model::*;
 use serenity::prelude::*;
 
@@ -9,6 +10,6 @@ impl EventHandler for Handler {
     }
 
     fn on_message(&self, _: Context, message: Message) {
-        println!("got msg: {}", message.content)
+        println!("got msg: {}", message.content);
     }
 }
