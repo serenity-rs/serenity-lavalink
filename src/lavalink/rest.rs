@@ -29,14 +29,15 @@ impl<'a> HttpClient<'a> {
         }
     }
 
-    fn create_request(&self, uri: &str, body: Option<Vec<u8>>) -> Request {
+    fn create_request(&self, method: Method, uri: &str, body: Option<(Vec<u8>, &str)>) -> Request {
         let uri = (self.host.clone() + uri).parse().expect("could not parse uri");
 
-        let mut req = Request::new(Method::Get, uri);
+        let mut req = Request::new(method, uri);
         req.headers_mut().set_raw("Authorization", self.password.clone());
 
-        if let Some(body) = body {
+        if let Some((body, content_type)) = body {
             req.set_body(body);
+            req.headers_mut().set_raw("Content-Type", content_type.to_owned());
         }
 
         req
@@ -61,7 +62,29 @@ impl<'a> HttpClient<'a> {
         let identifier = utf8_percent_encode(identifier, DEFAULT_ENCODE_SET);
 
         let uri = format!("/loadtracks?identifier={}", identifier);
-        let request = self.create_request(uri.as_ref(), None);
+        let request = self.create_request(Method::Get, uri.as_ref(), None);
+
+        let response = self.run_request(request);
+        let deserialized: Vec<LoadedTrack> = serde_json::from_slice(&response).unwrap();
+
+        deserialized
+    }
+
+    pub fn decode_track(&mut self, track: &str) -> LoadedTrackInfo {
+        let uri = format!("/decodetrack?track={}", track);
+        let request = self.create_request(Method::Get, uri.as_ref(), None);
+
+        let response = self.run_request(request);
+        let deserialized: LoadedTrackInfo = serde_json::from_slice(&response).unwrap();
+
+        deserialized
+    }
+
+    pub fn decode_tracks(&mut self, tracks: Vec<String>) -> Vec<LoadedTrack> {
+        let tracks = serde_json::to_vec(&tracks).unwrap();
+        let body = (tracks, "application/json");
+
+        let request = self.create_request(Method::Post, "/decodetracks", Some(body));
 
         let response = self.run_request(request);
         let deserialized: Vec<LoadedTrack> = serde_json::from_slice(&response).unwrap();

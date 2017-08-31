@@ -47,16 +47,21 @@ fn main() {
         .map(|num_shards| num_shards.parse::<i32>().unwrap()).unwrap();
 
     // load some lavalink tracks!!
-    /*{
+    {
         let mut core = Core::new().unwrap();
         let mut http_client = HttpClient::new(&mut core, &lavalink_http_host, &lavalink_password);
 
-        let tracks = http_client.load_tracks("ytsearch:ncs my heart");
+        let tracks: Vec<String> = http_client.load_tracks("ytsearch:ncs my heart")
+            .into_iter()
+            .map(|t| t.track.clone())
+            .collect();
+
+        let tracks = http_client.decode_tracks(tracks);
 
         for track in &tracks {
             println!("loaded track {} by {}", track.info.title, track.info.author);
         }
-    }*/
+    }
 
     // lets create a new thread for lavalink to run on
     let lavalink_handle = thread::spawn(move || {
