@@ -18,9 +18,10 @@ pub fn join(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
 
 pub fn leave(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
     let mut shard = ctx.shard.lock();
+    let manager = &mut shard.manager;
 
-    if shard.manager.get(GUILD_ID).is_some() {
-        shard.manager.remove(GUILD_ID);
+    if manager.get(GUILD_ID).is_some() {
+        manager.remove(GUILD_ID);
 
         let _ = msg.channel_id.say(&format!("{:?}", VOICE_CHANNEL_ID));
     } else {

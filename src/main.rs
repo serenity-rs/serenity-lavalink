@@ -48,15 +48,15 @@ fn main() {
         .map(|num_shards| num_shards.parse::<i32>().unwrap()).unwrap();
 
     // start the lavalink socket!!
-    let socket = Socket::open(&lavalink_websocket_host, &lavalink_user_id, &lavalink_password,
+    let lavalink_socket = Socket::open(&lavalink_websocket_host, &lavalink_user_id, &lavalink_password,
                               lavalink_num_shards);
 
     // say join the voice channel lol
-    let _ = socket.tx.send(OwnedMessage::Text(json!({
-            "op": Opcode::Connect.to_string(),
-            "guildId": "272410239947767808",
-            "channelId": "320643590986399749",
-        }).to_string()));
+    let _ = lavalink_socket.ws_tx.send(OwnedMessage::Text(json!({
+        "op": Opcode::Connect.to_string(),
+        "guildId": "272410239947767808",
+        "channelId": "320643590986399749",
+    }).to_string()));
 
     // serenity!!!
     let mut client = Client::new(&discord_token, handler::Handler);
@@ -79,5 +79,5 @@ fn main() {
         .map_err(|err| println!("serenity client ended: {:?}", err));
 
     // close the lavalink socket
-    socket.close();
+    lavalink_socket.close();
 }

@@ -29,7 +29,7 @@ impl SocketState {
 }
 
 pub struct Socket {
-    pub tx: Sender<OwnedMessage>,
+    pub ws_tx: Sender<OwnedMessage>,
     pub send_loop: JoinHandle<()>,
     pub recv_loop: JoinHandle<()>,
     pub state: Arc<Mutex<SocketState>>,
@@ -51,14 +51,14 @@ impl Socket {
 
         let (mut receiver, mut sender) = client.split().unwrap();
 
-        let (tx, rx) = channel();
-        let tx_1 = tx.clone();
+        let (ws_tx, ws_rx) = channel();
+        let ws_tx_1 = ws_tx.clone();
 
         let state = Arc::new(Mutex::new(SocketState::new()));
 
         let send_loop = thread::spawn(move || {
             loop {
-                let message = match rx.recv() {
+                let message = match ws_rx.recv() {
                     Ok(m) => m,
                     Err(e) => {
                         println!("Send loop: {:?}", e);
@@ -94,7 +94,7 @@ impl Socket {
                     Ok(m) => m,
                     Err(e) => {
                         println!("Receive loop: {:?}", e);
-                        let _ = tx_1.send(OwnedMessage::Close(None));
+                        let _ = ws_tx_1.send(OwnedMessage::Close(None));
                         return;
                     }
                 };
@@ -102,11 +102,11 @@ impl Socket {
                 match message {
                     // sever sent close msg, pass to send loop & break from loop
                     OwnedMessage::Close(_) => {
-                        let _ = tx_1.send(OwnedMessage::Close(None));
+                        let _ = ws_tx_1.send(OwnedMessage::Close(None));
                         return;
                     },
                     OwnedMessage::Ping(data) => {
-                        match tx_1.send(OwnedMessage::Pong(data)) {
+                        match ws_tx_1.send(OwnedMessage::Pong(data)) {
                             Ok(()) => (), // ponged well
                             Err(e) => {
                                 // ponged badly and had an error, exit loop!?!>!?
@@ -152,7 +152,7 @@ impl Socket {
                                     }
                                 };
 
-                                let _ = tx_1.send(OwnedMessage::Text(json.to_string()));
+                                let _ = ws_tx_1.send(OwnedMessage::Text(json.to_string()));
                             },
                             IsConnectedRequest => {
                                 // todo lmoo
@@ -165,7 +165,7 @@ impl Socket {
                                     "connected": true,
                                 });
 
-                                let _ = tx_1.send(OwnedMessage::Text(json.to_string()));
+                                let _ = ws_tx_1.send(OwnedMessage::Text(json.to_string()));
                             },
                             PlayerUpdate => {},
                             Stats => {
@@ -207,7 +207,7 @@ impl Socket {
         });
 
         Self {
-            tx,
+            ws_tx,
             send_loop,
             recv_loop,
             state,
@@ -217,7 +217,7 @@ impl Socket {
     pub fn close(self) {
         println!("closing lavalink socket!");
 
-        let _ = self.tx.send(OwnedMessage::Close(None));
+        let _ = self.ws_tx.send(OwnedMessage::Close(None));
 
         let _ = self.send_loop.join();
         let _ = self.recv_loop.join();
