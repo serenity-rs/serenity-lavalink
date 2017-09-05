@@ -10,6 +10,7 @@ extern crate tokio_core;
 extern crate futures;
 extern crate percent_encoding;
 extern crate typemap;
+extern crate parking_lot;
 
 mod commands;
 mod lavalink;
@@ -62,7 +63,7 @@ fn main() {
     let mut client = Client::new(&discord_token, handler::Handler);
 
     // start the lavalink socket!!
-    let lavalink_socket = Socket::open(&lavalink_config);
+    let lavalink_socket = Socket::open(&lavalink_config, client.shards.clone());
 
     // say join the voice channel lol
     let _ = lavalink_socket.ws_tx.send(OwnedMessage::Text(json!({

@@ -5,17 +5,20 @@ use super::opcodes::*;
 use super::stats::*;
 
 use std::thread::{self, Thread, JoinHandle};
-use std::sync::{Arc, Mutex};
+use std::sync;
+use std::sync::Arc;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::io::stdin;
 use std::str::FromStr;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+use serenity::gateway::Shard;
 use websocket::{Message, OwnedMessage};
 use websocket::client::ClientBuilder;
 use websocket::header::Headers;
 use serde_json::{Value, Error};
+use parking_lot;
 
 const WEBSOCKET_PROTOCOL: &'static str = "rust-websocket";
 
@@ -33,11 +36,11 @@ pub struct Socket {
     pub ws_tx: Sender<OwnedMessage>,
     pub send_loop: JoinHandle<()>,
     pub recv_loop: JoinHandle<()>,
-    pub state: Arc<Mutex<SocketState>>,
+    pub state: Arc<sync::Mutex<SocketState>>,
 }
 
 impl Socket {
-    pub fn open(config: &Config) -> Self {
+    pub fn open(config: &Config, shards: Arc<parking_lot::Mutex<HashMap<u64, Arc<parking_lot::Mutex<Shard>>>>>) -> Self {
         let mut headers = Headers::new();
         headers.set_raw("Authorization", vec![config.password.clone().as_bytes().to_vec()]);
         headers.set_raw("Num-Shards", vec![config.num_shards.to_string().as_bytes().to_vec()]);
@@ -55,7 +58,7 @@ impl Socket {
         let (ws_tx, ws_rx) = channel();
         let ws_tx_1 = ws_tx.clone();
 
-        let state = Arc::new(Mutex::new(SocketState::new()));
+        let state = Arc::new(sync::Mutex::new(SocketState::new()));
 
         let send_loop = thread::spawn(move || {
             loop {
