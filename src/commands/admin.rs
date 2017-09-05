@@ -10,7 +10,7 @@ impl Key for CloseHandleKey {
 }
 
 pub fn stop(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
-    let _ = msg.channel_id.say("Shutting down serenity!");
+    let _ = msg.channel_id.say("Shutting down!");
 
     let data = &*ctx.data.lock();
     let close_handle = data.get::<CloseHandleKey>().unwrap();

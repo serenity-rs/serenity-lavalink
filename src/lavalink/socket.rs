@@ -1,5 +1,6 @@
 extern crate serde_json;
 
+use super::config::Config;
 use super::opcodes::*;
 use super::stats::*;
 
@@ -36,13 +37,13 @@ pub struct Socket {
 }
 
 impl Socket {
-    pub fn open(socket_uri: &str, user_id: &str, password: &str, num_shards: i32) -> Self {
+    pub fn open(config: &Config) -> Self {
         let mut headers = Headers::new();
-        headers.set_raw("Authorization", vec![password.as_bytes().to_vec()]);
-        headers.set_raw("Num-Shards", vec![num_shards.to_string().as_bytes().to_vec()]);
-        headers.set_raw("User-Id", vec![user_id.as_bytes().to_vec()]);
+        headers.set_raw("Authorization", vec![config.password.clone().as_bytes().to_vec()]);
+        headers.set_raw("Num-Shards", vec![config.num_shards.to_string().as_bytes().to_vec()]);
+        headers.set_raw("User-Id", vec![config.user_id.clone().as_bytes().to_vec()]);
 
-        let client = ClientBuilder::new(socket_uri.as_ref())
+        let client = ClientBuilder::new(config.websocket_host.clone().as_ref())
             .unwrap()
             .add_protocol(WEBSOCKET_PROTOCOL)
             .custom_headers(&headers)

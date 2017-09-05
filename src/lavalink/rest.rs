@@ -1,5 +1,7 @@
 extern crate serde_json; // idk why this is required for serde_json's functions
 
+use super::config::Config;
+
 use hyper::{Client, Request, Method, Body, Error};
 use hyper::client::HttpConnector;
 use hyper_tls::HttpsConnector;
@@ -7,15 +9,16 @@ use tokio_core::reactor::Core;
 use futures::{future, Future, Stream};
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 
-pub struct HttpClient<'a> {
-    core: &'a mut Core,
+pub struct HttpClient {
+    core: Core,
     client: Client<HttpsConnector<HttpConnector>, Body>,
     host: String,
     password: String,
 }
 
-impl<'a> HttpClient<'a> {
-    pub fn new<'b>(core: &'a mut Core, host: &'b str, password: &'b str) -> Self {
+impl HttpClient {
+    pub fn new(config: &Config) -> Self {
+        let core = Core::new().unwrap();
         let handle = core.handle();
         let client = Client::configure()
             .connector(HttpsConnector::new(4, &handle).unwrap())
@@ -24,8 +27,8 @@ impl<'a> HttpClient<'a> {
         Self {
             core,
             client,
-            host: host.to_owned(),
-            password: password.to_owned(),
+            host: config.http_host.clone(),
+            password: config.password.clone(),
         }
     }
 
