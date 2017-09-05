@@ -19,7 +19,7 @@ impl EventHandler for Handler {
         // https://github.com/zeyla/serenity/blob/master/src/gateway/shard.rs#L712
         // https://github.com/zeyla/serenity/blob/master/src/voice/handler.rs#L308
 
-        
+
         let guild_id = event.guild_id.unwrap().0;
 
         println!("guild_id: {}", guild_id);

@@ -146,6 +146,17 @@ impl Socket {
                                 let guild_id_u64 = guild_id_str.parse::<u64>().unwrap();
                                 let channel_id_str = json["channelId"].as_str();
 
+                                // serenity inserts guilds into the cache once it becomes available so
+                                // i need to wait for the guild to become available before initiating
+                                // the connection
+                                //
+                                // this should not be an issue once connections are issued via commands
+                                // as the command cannot be handled before the guild is available :)
+                                //
+                                // for testing i have set it to always return true as lavalink will
+                                // continuously send validation requests and voice state updates until
+                                // it has a voice server update anyway
+
                                 /*let valid = match GuildId(guild_id_u64).find() {
                                     Some(_) => {
                                         if let Some(channel_id) = channel_id_str {
