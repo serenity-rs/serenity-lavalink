@@ -131,13 +131,22 @@ impl Socket {
                         use super::opcodes::Opcode::*;
 
                         match opcode {
-                            SendWS => {},
+                            SendWS => {
+                                let shard_id = json["shardId"].as_u64().unwrap();
+                                let message = json["message"].as_str().unwrap();
+
+                                let shards = &*shards.lock();
+                                let shard = &mut *shards.get(&shard_id).unwrap().lock();
+
+                                let result = shard.client.send_message(&OwnedMessage::Text(message.to_owned()));
+                                println!("{:?}", result);
+                            },
                             ValidationRequest => {
                                 let guild_id_str = json["guildId"].as_str().unwrap();
                                 let guild_id_u64 = guild_id_str.parse::<u64>().unwrap();
                                 let channel_id_str = json["channelId"].as_str();
 
-                                let valid = match GuildId(guild_id_u64).find() {
+                                /*let valid = match GuildId(guild_id_u64).find() {
                                     Some(_) => {
                                         if let Some(channel_id) = channel_id_str {
                                             let channel_id = ChannelId(channel_id.parse::<u64>().unwrap());
@@ -147,7 +156,8 @@ impl Socket {
                                         }
                                     },
                                     None => false,
-                                };
+                                };*/
+                                let valid = true; // todo remove
 
                                 let json = match channel_id_str {
                                     Some(channel_id) => {
