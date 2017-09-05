@@ -43,20 +43,13 @@ fn main() {
     // getting environment variables
     let discord_token = env::var("DISCORD_TOKEN").unwrap();
 
-    /*let lavalink_http_host = env::var("LAVALINK_HTTP_HOST").unwrap();
-    let lavalink_websocket_host = env::var("LAVALINK_WEBSOCKET_HOST").unwrap();
-    let lavalink_user_id = env::var("LAVALINK_USER_ID").unwrap();
-    let lavalink_password = env::var("LAVALINK_PASSWORD").unwrap();
-    let lavalink_num_shards = env::var("LAVALINK_NUM_SHARDS")
-        .map(|num_shards| num_shards.parse::<i32>().unwrap()).unwrap();*/
-
     let lavalink_config = Config {
         http_host: env::var("LAVALINK_HTTP_HOST").unwrap(),
         websocket_host: env::var("LAVALINK_WEBSOCKET_HOST").unwrap(),
         user_id: env::var("LAVALINK_USER_ID").unwrap(),
         password: env::var("LAVALINK_PASSWORD").unwrap(),
         num_shards: env::var("LAVALINK_NUM_SHARDS")
-            .map(|num_shards| num_shards.parse::<i32>().unwrap()).unwrap(),
+            .map(|num_shards| num_shards.parse::<u64>().unwrap()).unwrap(),
     };
 
     // serenity!!!
@@ -65,7 +58,7 @@ fn main() {
     // start the lavalink socket!!
     let lavalink_socket = Socket::open(&lavalink_config, client.shards.clone());
 
-    // say join the voice channel lol
+    // say join the voice channel lol todo pass ws_tx to Client#data to use from commands
     let _ = lavalink_socket.ws_tx.send(OwnedMessage::Text(json!({
         "op": Opcode::Connect.to_string(),
         "guildId": "272410239947767808",

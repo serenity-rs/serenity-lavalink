@@ -4,21 +4,23 @@ use super::config::Config;
 use super::opcodes::*;
 use super::stats::*;
 
-use std::thread::{self, Thread, JoinHandle};
+use std::collections::HashMap;
+use std::io::stdin;
+use std::rc::Rc;
+use std::str::FromStr;
 use std::sync;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Sender, Receiver};
-use std::io::stdin;
-use std::str::FromStr;
-use std::collections::HashMap;
-use std::rc::Rc;
+use std::thread::{self, Thread, JoinHandle};
 
-use serenity::gateway::Shard;
+use parking_lot;
 use websocket::{Message, OwnedMessage};
 use websocket::client::ClientBuilder;
 use websocket::header::Headers;
 use serde_json::{Value, Error};
-use parking_lot;
+use serenity::gateway::Shard;
+use serenity::model::{GuildId, ChannelId};
+use serenity::utils::shard_id;
 
 const WEBSOCKET_PROTOCOL: &'static str = "rust-websocket";
 
@@ -131,27 +133,36 @@ impl Socket {
                         match opcode {
                             SendWS => {},
                             ValidationRequest => {
-                                // todo actually check lmao
+                                let guild_id_str = json["guildId"].as_str().unwrap();
+                                let guild_id_u64 = guild_id_str.parse::<u64>().unwrap();
+                                let channel_id_str = json["channelId"].as_str();
 
-                                let guild_id = json["guildId"].as_str().unwrap();
-                                let channel_id = json["channelId"].as_str();
+                                let valid = match GuildId(guild_id_u64).find() {
+                                    Some(_) => {
+                                        if let Some(channel_id) = channel_id_str {
+                                            let channel_id = ChannelId(channel_id.parse::<u64>().unwrap());
+                                            channel_id.find().is_some()
+                                        } else {
+                                            true
+                                        }
+                                    },
+                                    None => false,
+                                };
 
-                                println!("channel_id: {:?}", &channel_id);
-
-                                let json = match channel_id {
+                                let json = match channel_id_str {
                                     Some(channel_id) => {
                                         json!({
                                             "op": ValidationResponse.to_string(),
-                                            "guildId": guild_id,
+                                            "guildId": guild_id_str,
                                             "channelId": channel_id,
-                                            "valid": true,
+                                            "valid": valid,
                                         })
                                     },
                                     None => {
                                         json!({
                                             "op": ValidationResponse.to_string(),
-                                            "guildId": guild_id,
-                                            "valid": true,
+                                            "guildId": guild_id_str,
+                                            "valid": valid,
                                         })
                                     }
                                 };
@@ -161,12 +172,13 @@ impl Socket {
                             IsConnectedRequest => {
                                 // todo lmoo
 
-                                let shard_id = json["shardId"].as_i64().unwrap();
+                                let shard_id = json["shardId"].as_u64().unwrap();
+                                let shards = &*shards.lock();
 
                                 let json = json!({
                                     "op": IsConnectedResponse.to_string(),
                                     "shardId": shard_id,
-                                    "connected": true,
+                                    "connected": shards.contains_key(&shard_id),
                                 });
 
                                 let _ = ws_tx_1.send(OwnedMessage::Text(json.to_string()));

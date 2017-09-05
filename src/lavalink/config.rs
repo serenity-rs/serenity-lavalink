@@ -4,5 +4,5 @@ pub struct Config {
     pub websocket_host: String,
     pub user_id: String,
     pub password: String,
-    pub num_shards: i32,
+    pub num_shards: u64,
 }
