@@ -15,6 +15,7 @@ extern crate parking_lot;
 mod commands;
 mod lavalink;
 mod handler;
+mod keys;
 
 use lavalink::config::Config;
 use lavalink::opcodes::Opcode;
@@ -59,7 +60,7 @@ fn main() {
     let lavalink_socket = Socket::open(&lavalink_config, client.shards.clone());
 
     // say join the voice channel lol todo pass ws_tx to Client#data to use from commands
-    let _ = lavalink_socket.ws_tx.send(OwnedMessage::Text(json!({
+    let _ = lavalink_socket.send(OwnedMessage::Text(json!({
         "op": Opcode::Connect.to_string(),
         "guildId": "272410239947767808",
         "channelId": "320643590986399749",
@@ -78,11 +79,15 @@ fn main() {
     {
         let data = &mut *client.data.lock();
 
-        // add the close handle for the admin stop command to shutdown serenity
-        let _ = data.insert::<commands::admin::CloseHandleKey>(client.close_handle().clone());
-
         // add a clone of the lavalink config for the search command's http client
-        let _ = data.insert::<commands::LavalinkConfigKey>(lavalink_config.clone());
+        let _ = data.insert::<keys::LavalinkConfig>(lavalink_config.clone());
+
+        // add the close handle for the admin stop command to shutdown serenity
+        let _ = data.insert::<keys::SerenityCloseHandle>(client.close_handle().clone());
+
+        // add a clone of the socket sender as we cannot pass around lavalink_socket for #send
+        let socket_sender = lavalink_socket.ws_tx.clone();
+        let _ = data.insert::<keys::LavalinkSocketSender>(socket_sender);
     }
 
     let _ = client.start()

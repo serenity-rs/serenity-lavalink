@@ -10,7 +10,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::sync;
 use std::sync::Arc;
-use std::sync::mpsc::{channel, Sender, Receiver};
+use std::sync::mpsc::{channel, Sender, Receiver, SendError};
 use std::thread::{self, Thread, JoinHandle};
 
 use parking_lot;
@@ -35,7 +35,7 @@ impl SocketState {
 }
 
 pub struct Socket {
-    pub ws_tx: Sender<OwnedMessage>,
+    pub ws_tx: Arc<sync::Mutex<Sender<OwnedMessage>>>,
     pub send_loop: JoinHandle<()>,
     pub recv_loop: JoinHandle<()>,
     pub state: Arc<sync::Mutex<SocketState>>,
@@ -146,16 +146,17 @@ impl Socket {
                                 let guild_id_u64 = guild_id_str.parse::<u64>().unwrap();
                                 let channel_id_str = json["channelId"].as_str();
 
-                                // serenity inserts guilds into the cache once it becomes available so
-                                // i need to wait for the guild to become available before initiating
-                                // the connection
+                                // serenity inserts guilds into the cache once it becomes available
+                                // so i need to wait for the guild to become available before
+                                // initiating the connection
                                 //
-                                // this should not be an issue once connections are issued via commands
-                                // as the command cannot be handled before the guild is available :)
+                                // this should not be an issue once connections are issued via
+                                // commands as the command cannot be handled before the guild is
+                                // available :)
                                 //
                                 // for testing i have set it to always return true as lavalink will
-                                // continuously send validation requests and voice state updates until
-                                // it has a voice server update anyway
+                                // continuously send validation requests and voice state updates
+                                // until it has a voice server update anyway
 
                                 /*let valid = match GuildId(guild_id_u64).find() {
                                     Some(_) => {
@@ -191,8 +192,6 @@ impl Socket {
                                 let _ = ws_tx_1.send(OwnedMessage::Text(json.to_string()));
                             },
                             IsConnectedRequest => {
-                                // todo lmoo
-
                                 let shard_id = json["shardId"].as_u64().unwrap();
                                 let shards = &*shards.lock();
 
@@ -229,8 +228,6 @@ impl Socket {
                                         println!("Unexpected event type: {}", unexpected)
                                     }
                                 }
-
-                                // todo get Player by guild_id & send event to PlayerListener
                             }
                             _ => {},
                         }
@@ -244,17 +241,23 @@ impl Socket {
         });
 
         Self {
-            ws_tx,
+            ws_tx: Arc::new(sync::Mutex::new(ws_tx)),
             send_loop,
             recv_loop,
             state,
         }
     }
 
+    pub fn send(&self, message: OwnedMessage) -> Result<(), SendError<OwnedMessage>> {
+        let ws_tx = self.ws_tx.clone();
+        let result = ws_tx.lock().unwrap().send(message);
+        result
+    }
+
     pub fn close(self) {
         println!("closing lavalink socket!");
 
-        let _ = self.ws_tx.send(OwnedMessage::Close(None));
+        let _ = self.send(OwnedMessage::Close(None));
 
         let _ = self.send_loop.join();
         let _ = self.recv_loop.join();

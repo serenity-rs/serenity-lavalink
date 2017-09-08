@@ -1,4 +1,4 @@
-use super::LavalinkConfigKey;
+use keys::LavalinkConfig;
 use ::lavalink::rest;
 
 use serenity::model::*;
@@ -14,8 +14,8 @@ pub fn search(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String
         }
     };
 
-    let data = &*ctx.data.lock();
-    let config = data.get::<LavalinkConfigKey>().unwrap();
+    let data = ctx.data.lock();
+    let config = data.get::<LavalinkConfig>().unwrap();
 
     // haha yes this is incredibly inefficient sorry tokio :'(
     let mut http_client = rest::HttpClient::new(&config);
