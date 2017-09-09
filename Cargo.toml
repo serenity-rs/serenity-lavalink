@@ -19,4 +19,4 @@ parking_lot = "0.4"
 
 [dependencies.serenity]
 git = "https://github.com/zeyla/serenity"
-features = ["builder", "cache", "client", "framework", "gateway", "http", "model", "utils", "voice"]
+features = ["builder", "cache", "client", "framework", "gateway", "http", "model", "utils"]

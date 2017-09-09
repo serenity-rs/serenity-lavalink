@@ -1,32 +1,32 @@
+extern crate serde_json;
+
+use keys;
+use lavalink::opcodes::Opcode::Connect;
+
 use serenity::model::*;
 use serenity::client::Context;
 use serenity::framework::standard::Args;
+use websocket::OwnedMessage;
 
 const GUILD_ID: GuildId = GuildId(272410239947767808); // dabBot guild
 const VOICE_CHANNEL_ID: ChannelId = ChannelId(320643590986399749); // TESTING!!! voice channel
 
 pub fn join(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
-    let mut shard = ctx.shard.lock();
-    let manager = &mut shard.manager;
+    let _ = msg.channel_id.say("joining channel");
 
-    let handler = manager.join(GUILD_ID, VOICE_CHANNEL_ID);
+    let data = ctx.data.lock();
 
-    let _ = msg.channel_id.say(&format!("{:?}", VOICE_CHANNEL_ID));
+    let ws_tx = data.get::<keys::LavalinkSocketSender>().unwrap().clone();
+
+    let _ = ws_tx.lock().unwrap().send(OwnedMessage::Text(json!({
+        "op": Connect.to_string(),
+        "guildId": "272410239947767808",
+        "channelId": "320643590986399749",
+    }).to_string()));
 
     Ok(())
 }
 
 pub fn leave(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
-    let mut shard = ctx.shard.lock();
-    let manager = &mut shard.manager;
-
-    if manager.get(GUILD_ID).is_some() {
-        manager.remove(GUILD_ID);
-
-        let _ = msg.channel_id.say(&format!("{:?}", VOICE_CHANNEL_ID));
-    } else {
-        let _ = msg.channel_id.say(&format!("not in {:?}", VOICE_CHANNEL_ID));
-    }
-
     Ok(())
 }

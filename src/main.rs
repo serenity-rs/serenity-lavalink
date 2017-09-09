@@ -17,21 +17,22 @@ mod lavalink;
 mod handler;
 mod keys;
 
+use handler::GuildVoiceState;
 use lavalink::config::Config;
 use lavalink::opcodes::Opcode;
 use lavalink::rest::HttpClient;
 use lavalink::socket::Socket;
 
+use std::collections::HashMap;
 use std::env;
 use std::thread;
 use std::time::Duration;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use serenity::client::CACHE;
 use serenity::framework::StandardFramework;
 use serenity::model::*;
 use serenity::prelude::*;
-use serenity::voice;
 use serenity::Result as SerenityResult;
 use dotenv::dotenv;
 use websocket::OwnedMessage;
@@ -59,13 +60,6 @@ fn main() {
     // start the lavalink socket!!
     let lavalink_socket = Socket::open(&lavalink_config, client.shards.clone());
 
-    // say join the voice channel lol todo pass ws_tx to Client#data to use from commands
-    let _ = lavalink_socket.send(OwnedMessage::Text(json!({
-        "op": Opcode::Connect.to_string(),
-        "guildId": "272410239947767808",
-        "channelId": "320643590986399749",
-    }).to_string()));
-
     client.with_framework(StandardFramework::new()
         .configure(|c| c
             .prefix("!")
@@ -88,6 +82,10 @@ fn main() {
         // add a clone of the socket sender as we cannot pass around lavalink_socket for #send
         let socket_sender = lavalink_socket.ws_tx.clone();
         let _ = data.insert::<keys::LavalinkSocketSender>(socket_sender);
+
+        // map of guild voice states
+        let voice_states: Mutex<HashMap<GuildId, Arc<Mutex<GuildVoiceState>>>> = Mutex::new(HashMap::new());
+        let _ = data.insert::<keys::GuildVoiceState>(voice_states);
     }
 
     let _ = client.start()
