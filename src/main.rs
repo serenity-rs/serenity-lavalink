@@ -1,7 +1,6 @@
-#[macro_use] extern crate serenity;
+extern crate serenity;
 extern crate dotenv;
 extern crate websocket;
-extern crate serde;
 #[macro_use] extern crate serde_json;
 #[macro_use] extern crate serde_derive;
 extern crate hyper;
@@ -19,24 +18,16 @@ mod keys;
 
 use handler::GuildVoiceState;
 use lavalink::config::Config;
-use lavalink::opcodes::Opcode;
-use lavalink::rest::HttpClient;
 use lavalink::socket::Socket;
 
 use std::collections::HashMap;
 use std::env;
-use std::thread;
-use std::time::Duration;
 use std::sync::{Arc, Mutex};
 
-use serenity::client::CACHE;
 use serenity::framework::StandardFramework;
 use serenity::model::*;
 use serenity::prelude::*;
-use serenity::Result as SerenityResult;
 use dotenv::dotenv;
-use websocket::OwnedMessage;
-use tokio_core::reactor::Core;
 
 fn main() {
     // load .env into environment variables
@@ -71,7 +62,7 @@ fn main() {
         .on("search", commands::search::search));
 
     {
-        let data = &mut *client.data.lock();
+        let data = &mut client.data.lock();
 
         // add a clone of the lavalink config for the search command's http client
         let _ = data.insert::<keys::LavalinkConfig>(lavalink_config.clone());

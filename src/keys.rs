@@ -1,7 +1,7 @@
 use handler;
 use lavalink;
 use serenity;
-use std::{self, collections, sync};
+use std::{collections, sync};
 use typemap::Key;
 use websocket;
 
