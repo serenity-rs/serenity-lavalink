@@ -5,22 +5,18 @@ use super::opcodes::*;
 use super::stats::*;
 
 use std::collections::HashMap;
-use std::io::stdin;
-use std::rc::Rc;
 use std::str::FromStr;
 use std::sync;
 use std::sync::Arc;
-use std::sync::mpsc::{channel, Sender, Receiver, SendError};
-use std::thread::{self, Thread, JoinHandle};
+use std::sync::mpsc::{channel, Sender, SendError};
+use std::thread::{self, JoinHandle};
 
 use parking_lot;
 use websocket::{Message, OwnedMessage};
 use websocket::client::ClientBuilder;
 use websocket::header::Headers;
-use serde_json::{Value, Error};
+use serde_json::Value;
 use serenity::gateway::Shard;
-use serenity::model::{GuildId, ChannelId};
-use serenity::utils::shard_id;
 
 const WEBSOCKET_PROTOCOL: &'static str = "rust-websocket";
 
@@ -143,7 +139,7 @@ impl Socket {
                             },
                             ValidationRequest => {
                                 let guild_id_str = json["guildId"].as_str().unwrap();
-                                let guild_id_u64 = guild_id_str.parse::<u64>().unwrap();
+                                let _guild_id_u64 = guild_id_str.parse::<u64>().unwrap();
                                 let channel_id_str = json["channelId"].as_str();
 
                                 // serenity inserts guilds into the cache once it becomes available

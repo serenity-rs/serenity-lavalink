@@ -73,6 +73,7 @@ impl HttpClient {
         deserialized
     }
 
+    #[allow(unused)]
     pub fn decode_track(&mut self, track: &str) -> LoadedTrackInfo {
         let uri = format!("/decodetrack?track={}", track);
         let request = self.create_request(Method::Get, uri.as_ref(), None);
@@ -83,6 +84,7 @@ impl HttpClient {
         deserialized
     }
 
+    #[allow(unused)]
     pub fn decode_tracks(&mut self, tracks: Vec<String>) -> Vec<LoadedTrack> {
         let tracks = serde_json::to_vec(&tracks).unwrap();
         let body = (tracks, "application/json");

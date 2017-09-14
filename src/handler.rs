@@ -1,5 +1,3 @@
-extern crate serde_json;
-
 use ::lavalink::opcodes::Opcode::VoiceUpdate;
 use keys;
 
@@ -9,9 +7,6 @@ use serenity::model::*;
 use serenity::prelude::*;
 use serenity::model::event::*;
 use websocket::OwnedMessage;
-
-const GUILD_ID: GuildId = GuildId(272410239947767808); // dabBot guild
-const VOICE_CHANNEL_ID: ChannelId = ChannelId(320643590986399749); // TESTING!!! voice channel
 
 pub struct GuildVoiceState {
     channel_id: Option<ChannelId>,
@@ -101,7 +96,7 @@ impl EventHandler for Handler {
         let data = ctx.data.lock();
 
         let guild_states = data.get::<keys::GuildVoiceState>().unwrap();
-        let mut guild_states = guild_states.lock().unwrap();
+        let guild_states = guild_states.lock().unwrap();
 
         if !guild_states.contains_key(&guild_id) {
             // guild states doesn't contain the guild so no voice state update received yet, lets

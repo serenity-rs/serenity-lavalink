@@ -1,5 +1,3 @@
-extern crate serde_json;
-
 use keys;
 use lavalink::opcodes::Opcode::Connect;
 
@@ -7,9 +5,6 @@ use serenity::model::*;
 use serenity::client::Context;
 use serenity::framework::standard::Args;
 use websocket::OwnedMessage;
-
-const GUILD_ID: GuildId = GuildId(272410239947767808); // dabBot guild
-const VOICE_CHANNEL_ID: ChannelId = ChannelId(320643590986399749); // TESTING!!! voice channel
 
 pub fn join(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
     let _ = msg.channel_id.say("joining channel");
@@ -27,6 +22,6 @@ pub fn join(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
     Ok(())
 }
 
-pub fn leave(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
+pub fn leave(_: &mut Context, _: &Message, _: Args) -> Result<(), String> {
     Ok(())
 }
