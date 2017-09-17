@@ -118,8 +118,6 @@ impl Socket {
                         }
                     },
                     OwnedMessage::Text(data) => {
-                        println!("Receive loop text message: {}", data);
-
                         let json: Value = serde_json::from_str(data.as_ref()).unwrap();
                         let op = json["op"].as_str().unwrap();
                         let opcode = Opcode::from_str(op).unwrap();
@@ -134,8 +132,7 @@ impl Socket {
                                 let shards = &*shards.lock();
                                 let shard = &mut *shards.get(&shard_id).unwrap().lock();
 
-                                let result = shard.client.send_message(&OwnedMessage::Text(message.to_owned()));
-                                println!("{:?}", result);
+                                let _ = shard.client.send_message(&OwnedMessage::Text(message.to_owned()));
                             },
                             ValidationRequest => {
                                 let guild_id_str = json["guildId"].as_str().unwrap();

@@ -48,8 +48,6 @@ impl HttpClient {
 
     fn run_request(&mut self, request: Request) -> Vec<u8> {
         let task = self.client.request(request).and_then(|response| {
-            println!("response status: {}", response.status());
-
             // todo work out how the fuck this works
             response.body().fold(Vec::new(), |mut v: Vec<u8>, chunk| {
                 v.extend(&chunk[..]);
