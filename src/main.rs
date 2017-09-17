@@ -16,16 +16,12 @@ mod lavalink;
 mod handler;
 mod keys;
 
-use handler::GuildVoiceState;
 use lavalink::config::Config;
 use lavalink::socket::Socket;
 
-use std::collections::HashMap;
 use std::env;
-use std::sync::{Arc, Mutex};
 
 use serenity::framework::StandardFramework;
-use serenity::model::*;
 use serenity::prelude::*;
 use dotenv::dotenv;
 
@@ -53,14 +49,15 @@ fn main() {
 
     client.with_framework(StandardFramework::new()
         .configure(|c| c
-            .prefix("!")
+            .prefix("RONNIEPICKERING")
             .on_mention(true))
-        .on("stop", commands::admin::stop)
+        .on("shutdown", commands::admin::shutdown)
         .on("ping", commands::meta::ping)
         .on("join", commands::voice::join)
         .on("leave", commands::voice::leave)
         .on("search", commands::search::search)
-        .on("play", commands::play::play));
+        .on("play", commands::play::play)
+        .on("stop", commands::play::stop));
 
     {
         let data = &mut client.data.lock();
@@ -74,10 +71,6 @@ fn main() {
         // add a clone of the socket sender as we cannot pass around lavalink_socket for #send
         let socket_sender = lavalink_socket.ws_tx.clone();
         let _ = data.insert::<keys::LavalinkSocketSender>(socket_sender);
-
-        // map of guild voice states
-        let voice_states: Mutex<HashMap<GuildId, Arc<Mutex<GuildVoiceState>>>> = Mutex::new(HashMap::new());
-        let _ = data.insert::<keys::GuildVoiceState>(voice_states);
     }
 
     let _ = client.start()

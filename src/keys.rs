@@ -1,15 +1,8 @@
-use handler;
 use lavalink;
 use serenity;
-use std::{collections, sync};
+use std::sync;
 use typemap::Key;
 use websocket;
-
-pub struct GuildVoiceState;
-
-impl Key for GuildVoiceState {
-    type Value = sync::Mutex<collections::HashMap<serenity::model::GuildId, sync::Arc<sync::Mutex<handler::GuildVoiceState>>>>;
-}
 
 pub struct LavalinkConfig;
 
