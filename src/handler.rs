@@ -29,12 +29,15 @@ impl GuildVoiceState {
 pub struct Handler;
 
 impl EventHandler for Handler {
-    fn on_ready(&self, _: Context, ready: Ready) {
+    fn on_ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
+
+        let mut data = ctx.data.lock();
+        let _ = data.insert::<keys::CurrentUserId>(ready.user.id);
     }
 
-    fn on_message(&self, _: Context, message: Message) {
-        println!("got msg: {}", message.content);
+    fn on_message(&self, _: Context, _: Message) {
+        //println!("got msg: {}", message.content);
     }
 
     /*
@@ -56,9 +59,14 @@ impl EventHandler for Handler {
             }
         };
 
-        println!("voice state update {:?} for guild {}", &voice_state, &guild_id);
-
         let data = ctx.data.lock();
+        
+        if voice_state.user_id.0 != data.get::<keys::CurrentUserId>().unwrap().0 {
+            println!("got voice state for user we dont care about ({})", voice_state.user_id.0);
+            return;
+        }
+        
+        println!("voice state update {:?}", &voice_state);
 
         let guild_states = data.get::<keys::GuildVoiceState>().unwrap();
         let mut guild_states = guild_states.lock().unwrap();
@@ -70,21 +78,15 @@ impl EventHandler for Handler {
         let guild_state = guild_states.get(&guild_id).unwrap().clone();
         let mut guild_state = guild_state.lock().unwrap();
 
-        match voice_state.channel_id {
-            Some(channel_id) => {
-                guild_state.channel_id = Some(channel_id);
-            },
-            _ => {},
+        if let Some(channel_id) = voice_state.channel_id {
+            guild_state.channel_id = Some(channel_id);
+        }
+
+        if let Some(token) = voice_state.token {
+            guild_state.token = Some(token);
         }
 
         guild_state.session_id = Some(voice_state.session_id);
-
-        match voice_state.token {
-            Some(token) => {
-                guild_state.token = Some(token);
-            },
-            _ => {},
-        }
     }
 
     fn on_voice_server_update(&self, ctx: Context, event: VoiceServerUpdateEvent) {

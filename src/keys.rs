@@ -28,3 +28,9 @@ pub struct SerenityCloseHandle;
 impl Key for SerenityCloseHandle {
     type Value = serenity::client::CloseHandle;
 }
+
+pub struct CurrentUserId;
+
+impl Key for CurrentUserId {
+    type Value = serenity::model::UserId;
+}

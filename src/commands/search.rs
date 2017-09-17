@@ -21,10 +21,15 @@ pub fn search(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String
     let mut http_client = rest::HttpClient::new(&config);
     let tracks = http_client.load_tracks(&identifier);
 
+    if tracks.len() == 0 {
+        let _ = msg.channel_id.say("No results found!");
+        return Ok(());
+    }
+
     let response = tracks.into_iter()
         .enumerate()
-        .take_while(|e| e.0 < 5)
-        .map(|e| e.1.info.title)
+        .take_while(|e| e.0 < 3)
+        .map(|e| format!("{}: {}", e.1.info.title, e.1.track))
         .collect::<Vec<String>>()
         .join("\n");
 

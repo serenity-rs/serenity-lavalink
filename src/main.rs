@@ -59,7 +59,8 @@ fn main() {
         .on("ping", commands::meta::ping)
         .on("join", commands::voice::join)
         .on("leave", commands::voice::leave)
-        .on("search", commands::search::search));
+        .on("search", commands::search::search)
+        .on("play", commands::play::play));
 
     {
         let data = &mut client.data.lock();
