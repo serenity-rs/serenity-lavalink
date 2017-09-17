@@ -1,12 +1,11 @@
 use keys;
 
-use lavalink::opcodes::Opcode::VoiceUpdate;
+use lavalink::message;
 
 use serenity::client::CACHE;
 use serenity::model::*;
 use serenity::prelude::*;
 use serenity::model::event::*;
-use websocket::OwnedMessage;
 
 pub struct Handler;
 
@@ -61,19 +60,10 @@ impl EventHandler for Handler {
             }
         };
 
-        let json_data = json!({
-            "op": VoiceUpdate.to_string(),
-            "sessionId": &voice_state.session_id,
-            "guildId": &guild_id,
-            "event": {
-                "token": &event.token,
-                "guild_id": &guild_id,
-                "endpoint": &endpoint,
-            }
-        }).to_string();
+        let json_data = message::voice_update(&voice_state.session_id, &guild_id, &event.token, &endpoint);
 
         let data = ctx.data.lock();
         let ws_tx = data.get::<keys::LavalinkSocketSender>().unwrap().clone();
-        let _ = ws_tx.lock().unwrap().send(OwnedMessage::Text(json_data));
+        let _ = ws_tx.lock().unwrap().send(json_data);
     }
 }

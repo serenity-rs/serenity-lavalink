@@ -1,6 +1,7 @@
 extern crate serde_json;
 
 use super::config::Config;
+use super::message;
 use super::opcodes::*;
 use super::stats::*;
 
@@ -164,37 +165,17 @@ impl Socket {
                                 };*/
                                 let valid = true; // todo remove
 
-                                let json = match channel_id_str {
-                                    Some(channel_id) => {
-                                        json!({
-                                            "op": ValidationResponse.to_string(),
-                                            "guildId": guild_id_str,
-                                            "channelId": channel_id,
-                                            "valid": valid,
-                                        })
-                                    },
-                                    None => {
-                                        json!({
-                                            "op": ValidationResponse.to_string(),
-                                            "guildId": guild_id_str,
-                                            "valid": valid,
-                                        })
-                                    }
-                                };
+                                let json = message::validation_response(guild_id_str, channel_id_str, valid);
 
-                                let _ = ws_tx_1.send(OwnedMessage::Text(json.to_string()));
+                                let _ = ws_tx_1.send(json);
                             },
                             IsConnectedRequest => {
                                 let shard_id = json["shardId"].as_u64().unwrap();
                                 let shards = &*shards.lock();
 
-                                let json = json!({
-                                    "op": IsConnectedResponse.to_string(),
-                                    "shardId": shard_id,
-                                    "connected": shards.contains_key(&shard_id),
-                                });
+                                let json = message::is_connected_response(shard_id, shards.contains_key(&shard_id));
 
-                                let _ = ws_tx_1.send(OwnedMessage::Text(json.to_string()));
+                                let _ = ws_tx_1.send(json);
                             },
                             PlayerUpdate => {},
                             Stats => {
