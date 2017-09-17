@@ -53,6 +53,7 @@ fn main() {
             .on_mention(true))
         .on("shutdown", commands::admin::shutdown)
         .on("ping", commands::meta::ping)
+        .on("stats", commands::meta::stats)
         .on("join", commands::voice::join)
         .on("leave", commands::voice::leave)
         .on("search", commands::search::search)
@@ -71,6 +72,10 @@ fn main() {
         // add a clone of the socket sender as we cannot pass around lavalink_socket for #send
         let socket_sender = lavalink_socket.ws_tx.clone();
         let _ = data.insert::<keys::LavalinkSocketSender>(socket_sender);
+
+        // add a clone of the socket state
+        let socket_state = lavalink_socket.state.clone();
+        let _ = data.insert::<keys::LavalinkSocketState>(socket_state);
     }
 
     let _ = client.start()

@@ -3,11 +3,11 @@ use serde_json::Value;
 #[derive(Debug, Clone)]
 pub struct FrameStats {
     // average frames sent per minute
-    sent: i32,
+    pub sent: i32,
     // average frames nulled per minute
-    nulled: i32,
+    pub nulled: i32,
     // average frames deficit per minute
-    deficit: i32,
+    pub deficit: i32,
 }
 
 #[derive(Debug, Clone)]

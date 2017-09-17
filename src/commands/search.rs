@@ -13,7 +13,6 @@ pub fn search(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String
             return Ok(());
         }
     };
-    let identifier = format!("ytsearch:{}", identifier);
 
     let data = ctx.data.lock();
     let config = data.get::<LavalinkConfig>().unwrap();

@@ -16,6 +16,12 @@ impl Key for LavalinkSocketSender {
     type Value = sync::Arc<sync::Mutex<sync::mpsc::Sender<websocket::OwnedMessage>>>;
 }
 
+pub struct LavalinkSocketState;
+
+impl Key for LavalinkSocketState {
+    type Value = sync::Arc<sync::Mutex<lavalink::socket::SocketState>>;
+}
+
 pub struct SerenityCloseHandle;
 
 impl Key for SerenityCloseHandle {
