@@ -3,3 +3,4 @@ serenity-lavalink.iml
 .env
 Cargo.lock
 target
+.vscode/settings.json
