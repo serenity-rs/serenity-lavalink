@@ -76,8 +76,8 @@ fn main() {
             .command("search", |c| c
                 .exec(commands::search::search)
                 .desc("shows tracks for a search result")
-                .example("RONNIEPICKERING search ytsearch:ncs mix")
-                .usage("RONNIEPICKERING search <[prefix:]identifier>\nAvailable prefixes: ytsearch, scsearch")
+                .example("search ytsearch:ncs mix")
+                .usage("search <[prefix:]identifier>\nAvailable prefixes: ytsearch, scsearch")
                 .min_args(1)))
 
         .group("voice", |g| g
@@ -93,7 +93,7 @@ fn main() {
             .command("play", |c| c
                 .exec(commands::play::play)
                 .desc("plays a track")
-                .usage("RONNIEPICKERING play <base64 encoded track>")
+                .usage("play <base64 encoded track>")
                 .min_args(1))
             .command("stop", |c| c
                 .exec(commands::stop::stop)
@@ -107,8 +107,8 @@ fn main() {
             .command("volume", |c| c
                 .exec(commands::volume::volume)
                 .desc("changes the track volume")
-                .example("RONNIEPICKERING volume 100")
-                .usage("RONNIEPICKERING volume <1 - 150> (default: 100)")
+                .example("volume 100")
+                .usage("volume <1 - 150> (default: 100)")
                 .min_args(1))));
 
     {

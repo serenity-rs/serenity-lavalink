@@ -10,15 +10,8 @@ use serenity::model::event::*;
 pub struct Handler;
 
 impl EventHandler for Handler {
-    fn on_ready(&self, ctx: Context, ready: Ready) {
-        println!("{} is connected!", ready.user.name);
-
-        let mut data = ctx.data.lock();
-        let _ = data.insert::<keys::CurrentUserId>(ready.user.id);
-    }
-
-    fn on_message(&self, _: Context, _: Message) {
-        //println!("got msg: {}", message.content);
+    fn on_ready(&self, _: Context, ready: Ready) {
+        println!("READY event for {}", ready.user.name);
     }
 
     fn on_voice_server_update(&self, ctx: Context, event: VoiceServerUpdateEvent) {
