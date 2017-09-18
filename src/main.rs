@@ -58,7 +58,10 @@ fn main() {
         .on("leave", commands::voice::leave)
         .on("search", commands::search::search)
         .on("play", commands::play::play)
-        .on("stop", commands::play::stop));
+        .on("stop", commands::stop::stop)
+        .on("pause", commands::pause::pause)
+        .on("resume", commands::pause::resume)
+        .on("volume", commands::volume::volume));
 
     {
         let data = &mut client.data.lock();

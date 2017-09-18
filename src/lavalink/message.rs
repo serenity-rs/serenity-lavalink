@@ -3,6 +3,7 @@ use super::opcodes::Opcode::*;
 use serde_json::Value;
 use websocket::OwnedMessage;
 
+#[inline]
 fn from_json(json: Value) -> OwnedMessage {
     OwnedMessage::Text(json.to_string())
 }
@@ -90,7 +91,7 @@ pub fn pause(guild_id: &str, pause: bool) -> OwnedMessage {
 
 pub fn seek(guild_id: &str, position: i64) -> OwnedMessage {
     from_json(json!({
-        "op": Pause.to_string(),
+        "op": Seek.to_string(),
         "guildId": guild_id,
         "position": position,
     }))
@@ -98,7 +99,7 @@ pub fn seek(guild_id: &str, position: i64) -> OwnedMessage {
 
 pub fn volume(guild_id: &str, volume: i32) -> OwnedMessage {
     from_json(json!({
-        "op": Pause.to_string(),
+        "op": Volume.to_string(),
         "guildId": guild_id,
         "volume": volume,
     }))
