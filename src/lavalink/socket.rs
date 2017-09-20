@@ -3,21 +3,22 @@ extern crate serde_json;
 use super::config::Config;
 use super::message;
 use super::opcodes::*;
+use super::player::*;
 use super::stats::*;
 
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender, SendError};
 use std::thread::{self, JoinHandle};
 
 use parking_lot;
+use serde_json::Value;
+use serenity::gateway::Shard;
+use serenity::model::GuildId;
 use websocket::{Message, OwnedMessage};
 use websocket::client::ClientBuilder;
 use websocket::header::Headers;
-use serde_json::Value;
-use serenity::gateway::Shard;
 
 const WEBSOCKET_PROTOCOL: &'static str = "rust-websocket";
 
@@ -27,18 +28,21 @@ pub struct SocketState {
 
 impl SocketState {
     fn new() -> Self {
-        Self { stats: None, }
+        Self { 
+            stats: None,
+        }
     }
 }
 
-pub struct Socket {
-    pub ws_tx: Arc<sync::Mutex<Sender<OwnedMessage>>>,
+pub struct Socket<T: AudioPlayerListener> {
+    pub ws_tx: Arc<Mutex<Sender<OwnedMessage>>>,
     pub send_loop: JoinHandle<()>,
     pub recv_loop: JoinHandle<()>,
-    pub state: Arc<sync::Mutex<SocketState>>,
+    pub state: Arc<Mutex<SocketState>>,
+    pub audio_players: Arc<Mutex<HashMap<GuildId, Arc<Mutex<AudioPlayer<T>>>>>>,
 }
 
-impl Socket {
+impl<T: AudioPlayerListener> Socket<T> {
     pub fn open(config: &Config, shards: Arc<parking_lot::Mutex<HashMap<u64, Arc<parking_lot::Mutex<Shard>>>>>) -> Self {
         let mut headers = Headers::new();
         headers.set_raw("Authorization", vec![config.password.clone().as_bytes().to_vec()]);
@@ -57,7 +61,7 @@ impl Socket {
         let (ws_tx, ws_rx) = channel();
         let ws_tx_1 = ws_tx.clone();
 
-        let state = Arc::new(sync::Mutex::new(SocketState::new()));
+        let state = Arc::new(Mutex::new(SocketState::new()));
 
         let send_loop = thread::spawn(move || {
             loop {
@@ -90,6 +94,9 @@ impl Socket {
         });
 
         let recv_state = state.clone(); // clone state for the recv loop otherwise ownership passed
+
+        let audio_players = Arc::new(Mutex::new(HashMap::new()));
+        let audio_players_cloned = audio_players.clone(); // clone for move to recv loop
 
         let recv_loop = thread::spawn(move || {
             for message in receiver.incoming_messages() {
@@ -177,7 +184,28 @@ impl Socket {
 
                                 let _ = ws_tx_1.send(json);
                             },
-                            PlayerUpdate => {},
+                            PlayerUpdate => {
+                                let guild_id_str = json["guild_id"].as_str().unwrap();
+                                let guild_id = GuildId(guild_id_str.parse::<u64>().unwrap());
+                                let state = json["state"].as_object().unwrap();
+                                let time = state["time"].as_i64().unwrap();
+                                let position = state["position"].as_i64().unwrap();
+
+                                let mut audio_players = audio_players_cloned.lock().unwrap(); // HashMap<GuildId, Arc<Mutex<AudioPlayer>>>
+                                let audio_player_exists = audio_players.contains_key(&guild_id);
+
+                                // create a new audio player and insert into the map if it doesnt already exist
+                                if !audio_player_exists {
+                                    let _ = audio_players.insert(guild_id.clone(), Arc::new(Mutex::new(AudioPlayer::new())));
+                                }
+
+                                // clone and access mutex lock
+                                let audio_player_arc = audio_players.get(&guild_id).unwrap().clone();
+                                let mut audio_player = audio_player_arc.lock().unwrap();
+
+                                audio_player.time = time;
+                                audio_player.position = position;
+                            },
                             Stats => {
                                 let stats = RemoteStats::from_json(&json);
 
@@ -215,10 +243,11 @@ impl Socket {
         });
 
         Self {
-            ws_tx: Arc::new(sync::Mutex::new(ws_tx)),
+            ws_tx: Arc::new(Mutex::new(ws_tx)),
             send_loop,
             recv_loop,
             state,
+            audio_players,
         }
     }
 

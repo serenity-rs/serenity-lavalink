@@ -89,6 +89,7 @@ pub fn pause(guild_id: &str, pause: bool) -> OwnedMessage {
     }))
 }
 
+#[allow(unused)]
 pub fn seek(guild_id: &str, position: i64) -> OwnedMessage {
     from_json(json!({
         "op": Seek.to_string(),
