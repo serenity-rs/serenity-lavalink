@@ -34,8 +34,10 @@ impl SocketState {
     }
 }
 
+pub type SocketSender = Arc<Mutex<Sender<OwnedMessage>>>;
+
 pub struct Socket {
-    pub ws_tx: Arc<Mutex<Sender<OwnedMessage>>>,
+    pub ws_tx: SocketSender,
     pub send_loop: JoinHandle<()>,
     pub recv_loop: JoinHandle<()>,
     pub state: Arc<Mutex<SocketState>>,
