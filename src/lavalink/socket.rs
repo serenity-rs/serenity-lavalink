@@ -63,7 +63,8 @@ impl Socket {
 
         let state = Arc::new(Mutex::new(SocketState::new()));
 
-        let send_loop = thread::spawn(move || {
+        let builder = thread::Builder::new().name("send loop".into());
+        let send_loop = builder.spawn(move || {
             loop {
                 let message = match ws_rx.recv() {
                     Ok(m) => m,
@@ -91,14 +92,15 @@ impl Socket {
                     }
                 }
             }
-        });
+        }).unwrap();
 
         let recv_state = state.clone(); // clone state for the recv loop otherwise ownership passed
 
         let player_manager = Arc::new(Mutex::new(AudioPlayerManager::new()));
         let player_manager_cloned = player_manager.clone(); // clone for move to recv loop
 
-        let recv_loop = thread::spawn(move || {
+        let builder = thread::Builder::new().name("recv loop".into());
+        let recv_loop = builder.spawn(move || {
             for message in receiver.incoming_messages() {
                 let message = match message {
                     Ok(m) => m,
@@ -241,7 +243,7 @@ impl Socket {
                     }
                 }
             }
-        });
+        }).unwrap();
 
         Self {
             ws_tx: Arc::new(Mutex::new(ws_tx)),
