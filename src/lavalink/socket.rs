@@ -34,15 +34,15 @@ impl SocketState {
     }
 }
 
-pub struct Socket<T: AudioPlayerListener> {
+pub struct Socket {
     pub ws_tx: Arc<Mutex<Sender<OwnedMessage>>>,
     pub send_loop: JoinHandle<()>,
     pub recv_loop: JoinHandle<()>,
     pub state: Arc<Mutex<SocketState>>,
-    pub audio_players: Arc<Mutex<HashMap<GuildId, Arc<Mutex<AudioPlayer<T>>>>>>,
+    pub player_manager: Arc<Mutex<AudioPlayerManager>>,
 }
 
-impl<T: AudioPlayerListener> Socket<T> {
+impl Socket {
     pub fn open(config: &Config, shards: Arc<parking_lot::Mutex<HashMap<u64, Arc<parking_lot::Mutex<Shard>>>>>) -> Self {
         let mut headers = Headers::new();
         headers.set_raw("Authorization", vec![config.password.clone().as_bytes().to_vec()]);
@@ -95,8 +95,8 @@ impl<T: AudioPlayerListener> Socket<T> {
 
         let recv_state = state.clone(); // clone state for the recv loop otherwise ownership passed
 
-        let audio_players = Arc::new(Mutex::new(HashMap::new()));
-        let audio_players_cloned = audio_players.clone(); // clone for move to recv loop
+        let player_manager = Arc::new(Mutex::new(AudioPlayerManager::new()));
+        let player_manager_cloned = player_manager.clone(); // clone for move to recv loop
 
         let recv_loop = thread::spawn(move || {
             for message in receiver.incoming_messages() {
@@ -190,21 +190,22 @@ impl<T: AudioPlayerListener> Socket<T> {
                                 let state = json["state"].as_object().unwrap();
                                 let time = state["time"].as_i64().unwrap();
                                 let position = state["position"].as_i64().unwrap();
+                                
+                                let player_manager = player_manager_cloned.lock().unwrap(); // unlock the mutex
 
-                                let mut audio_players = audio_players_cloned.lock().unwrap(); // HashMap<GuildId, Arc<Mutex<AudioPlayer>>>
-                                let audio_player_exists = audio_players.contains_key(&guild_id);
+                                let player = match player_manager.get_player(&guild_id) {
+                                    Some(player) => player, // returns already cloned Arc
+                                    None => {
+                                        println!("got invalid audio player update for guild {:?}", &guild_id);
+                                        continue;
+                                    }
+                                };
 
-                                // create a new audio player and insert into the map if it doesnt already exist
-                                if !audio_player_exists {
-                                    let _ = audio_players.insert(guild_id.clone(), Arc::new(Mutex::new(AudioPlayer::new())));
-                                }
+                                let mut player = player.lock().unwrap(); // unlock the player mutex
+                                player.time = time;
+                                player.position = position;
 
-                                // clone and access mutex lock
-                                let audio_player_arc = audio_players.get(&guild_id).unwrap().clone();
-                                let mut audio_player = audio_player_arc.lock().unwrap();
-
-                                audio_player.time = time;
-                                audio_player.position = position;
+                                println!("updated player state for guild {:?}", &guild_id);
                             },
                             Stats => {
                                 let stats = RemoteStats::from_json(&json);
@@ -247,7 +248,7 @@ impl<T: AudioPlayerListener> Socket<T> {
             send_loop,
             recv_loop,
             state,
-            audio_players,
+            player_manager,
         }
     }
 

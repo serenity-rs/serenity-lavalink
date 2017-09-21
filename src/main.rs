@@ -127,6 +127,10 @@ fn main() {
         // add a clone of the socket state
         let socket_state = lavalink_socket.state.clone();
         let _ = data.insert::<keys::LavalinkSocketState>(socket_state);
+
+        // lets gif the player manager :)
+        let player_manager = lavalink_socket.player_manager.clone();
+        let _ = data.insert::<keys::LavalinkAudioPlayerManager>(player_manager);
     }
 
     let _ = client.start()

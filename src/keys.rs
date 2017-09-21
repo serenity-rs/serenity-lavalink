@@ -4,6 +4,12 @@ use std::sync;
 use typemap::Key;
 use websocket;
 
+pub struct LavalinkAudioPlayerManager;
+
+impl Key for LavalinkAudioPlayerManager {
+    type Value = sync::Arc<sync::Mutex<lavalink::player::AudioPlayerManager>>;
+}
+
 pub struct LavalinkConfig;
 
 impl Key for LavalinkConfig {
