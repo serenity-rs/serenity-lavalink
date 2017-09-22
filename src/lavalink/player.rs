@@ -10,12 +10,12 @@ use std::sync::mpsc::{Sender, SendError};
 
 use websocket::OwnedMessage;
 
-type PlayerPauseHandler = Fn(&AudioPlayer) + Send + Sync;
-type PlayerResumeHandler = Fn(&AudioPlayer) + Send + Sync;
-type TrackStartHandler = Fn(&AudioPlayer, String) + Send + Sync;
-type TrackEndHandler = Fn(&AudioPlayer, String, String) + Send + Sync;
-type TrackExceptionHandler = Fn(&AudioPlayer, String, String) + Send + Sync;
-type TrackStuckHandler = Fn(&AudioPlayer, String, i64) + Send + Sync;
+type PlayerPauseHandler = fn(&AudioPlayer);
+type PlayerResumeHandler = fn(&AudioPlayer);
+type TrackStartHandler = fn(&AudioPlayer, String);
+type TrackEndHandler = fn(&AudioPlayer, String, String);
+type TrackExceptionHandler = fn(&AudioPlayer, String, String);
+type TrackStuckHandler = fn(&AudioPlayer, String, i64);
 
 pub struct AudioPlayerListener {
     pub on_player_pause: Box<PlayerPauseHandler>,
