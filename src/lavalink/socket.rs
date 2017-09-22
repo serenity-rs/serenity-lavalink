@@ -210,7 +210,7 @@ impl Socket {
                                 ));
                             },
                             PlayerUpdate => {
-                                let guild_id_str = json["guild_id"].as_str().expect("expected json guild_id - should be str");
+                                let guild_id_str = json["guildId"].as_str().expect("expected json guildId - should be str");
                                 let guild_id = GuildId(guild_id_str.parse::<u64>().expect("could not parse json guild_id into u64"));
                                 let state = json["state"].as_object().expect("json does not contain state object");
                                 let time = state["time"].as_i64().expect("json state object does not contain time - should be i64");
@@ -279,7 +279,7 @@ impl Socket {
 
     pub fn send(&self, message: OwnedMessage) -> Result<(), SendError<OwnedMessage>> {
         let ws_tx = self.ws_tx.clone();
-        
+
         let result = ws_tx.lock()
             .expect("could not get access to ws_tx mutex")
             .send(message);
