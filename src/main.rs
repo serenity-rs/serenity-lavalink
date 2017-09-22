@@ -109,7 +109,10 @@ fn main() {
                 .desc("changes the track volume")
                 .example("volume 100")
                 .usage("volume <1 - 150> (default: 100)")
-                .min_args(1))));
+                .min_args(1))
+            .command("current", |c| c
+                .exec(commands::current::current)
+                .desc("shows the playing track"))));
 
     {
         let data = &mut client.data.lock();

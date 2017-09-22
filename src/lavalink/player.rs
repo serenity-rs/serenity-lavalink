@@ -1,8 +1,6 @@
 use super::message;
 use super::socket::SocketSender;
 
-use serenity::model::GuildId;
-
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::SendError;
@@ -11,10 +9,10 @@ use websocket::OwnedMessage;
 
 type PlayerPauseHandler = fn(&AudioPlayer);
 type PlayerResumeHandler = fn(&AudioPlayer);
-type TrackStartHandler = fn(&AudioPlayer, String);
-type TrackEndHandler = fn(&AudioPlayer, String, String);
-type TrackExceptionHandler = fn(&AudioPlayer, String, String);
-type TrackStuckHandler = fn(&AudioPlayer, String, i64);
+type TrackStartHandler = fn(&AudioPlayer, &str);
+type TrackEndHandler = fn(&AudioPlayer, &str, &str);
+type TrackExceptionHandler = fn(&AudioPlayer, &str, &str);
+type TrackStuckHandler = fn(&AudioPlayer, &str, i64);
 
 pub struct AudioPlayerListener {
     pub on_player_pause: PlayerPauseHandler,
@@ -43,17 +41,17 @@ impl AudioPlayerListener {
 // where mutablity should not be nessesary for non state fields
 pub struct AudioPlayer {
     pub sender: SocketSender,
-    pub guild_id: GuildId,
+    pub guild_id: u64,
     pub track: Option<String>,
     pub time: i64,
     pub position: i64,
     pub paused: bool,
     pub volume: i32,
-    listeners: Vec<AudioPlayerListener>,
+    pub listeners: Vec<AudioPlayerListener>,
 }
 
 impl AudioPlayer {
-    fn new(sender: SocketSender, guild_id: GuildId) -> Self {
+    fn new(sender: SocketSender, guild_id: u64) -> Self {
         Self {
             sender,
             guild_id,
@@ -76,7 +74,7 @@ impl AudioPlayer {
 
     pub fn play(&mut self, track: &str) {
         let result = self.send(message::play(
-            &self.guild_id.0.to_string(), 
+            &self.guild_id.to_string(), 
             track
         ));
         
@@ -86,7 +84,7 @@ impl AudioPlayer {
                 
                 for listener in &self.listeners {
                     let on_track_start = &listener.on_track_start;
-                    on_track_start(self, track.to_string());
+                    on_track_start(self, track);
                 }
 
                 println!("started playing track {:?}", self.track);
@@ -99,7 +97,7 @@ impl AudioPlayer {
 
     pub fn stop(&mut self) {
         let result = self.send(message::stop(
-            &self.guild_id.0.to_string()
+            &self.guild_id.to_string()
         ));
         
         match result {
@@ -109,7 +107,7 @@ impl AudioPlayer {
 
                 for listener in &self.listeners {
                     let on_track_end = &listener.on_track_end;
-                    on_track_end(self, track.to_string(), "no reason :) :dabs:".to_string());
+                    on_track_end(self, &track, "no reason :) :dabs:");
                 }
 
                 println!("stopped playing track {:?}", track);
@@ -122,7 +120,7 @@ impl AudioPlayer {
 
     pub fn pause(&mut self, pause: bool) {
         let result = self.send(message::pause(
-            &self.guild_id.0.to_string(), 
+            &self.guild_id.to_string(), 
             pause
         ));
         
@@ -155,7 +153,7 @@ impl AudioPlayer {
 
     pub fn volume(&mut self, volume: i32) {
         let result = self.send(message::volume(
-            &self.guild_id.0.to_string(), 
+            &self.guild_id.to_string(), 
             volume
         ));
         
@@ -172,7 +170,7 @@ impl AudioPlayer {
     }
 }
 
-type AudioPlayerMap = HashMap<GuildId, Arc<Mutex<AudioPlayer>>>;
+type AudioPlayerMap = HashMap<u64, Arc<Mutex<AudioPlayer>>>;
 
 pub struct AudioPlayerManager {
     players: AudioPlayerMap,
@@ -180,7 +178,7 @@ pub struct AudioPlayerManager {
 
 impl AudioPlayerManager {
     // utility assosiated function for creating AudioPlayer instances wrapped in Arc & Mutex
-    fn new_player(sender: SocketSender, guild_id: GuildId) -> Arc<Mutex<AudioPlayer>> {
+    fn new_player(sender: SocketSender, guild_id: u64) -> Arc<Mutex<AudioPlayer>> {
         Arc::new(Mutex::new(AudioPlayer::new(sender, guild_id)))
     }
     
@@ -190,11 +188,11 @@ impl AudioPlayerManager {
         }
     }
 
-    pub fn has_player(&self, guild_id: &GuildId) -> bool {
+    pub fn has_player(&self, guild_id: &u64) -> bool {
         self.players.contains_key(&guild_id)
     }
 
-    pub fn get_player(&self, guild_id: &GuildId) -> Option<Arc<Mutex<AudioPlayer>>> {
+    pub fn get_player(&self, guild_id: &u64) -> Option<Arc<Mutex<AudioPlayer>>> {
         let player = match self.players.get(guild_id) {
             Some(player) => player,
             None => return None,
@@ -203,7 +201,7 @@ impl AudioPlayerManager {
         Some(player.clone()) // clone the arc
     }
 
-    pub fn create_player(&mut self, sender: SocketSender, guild_id: GuildId) -> Result<Arc<Mutex<AudioPlayer>>, String> {
+    pub fn create_player(&mut self, sender: SocketSender, guild_id: u64) -> Result<Arc<Mutex<AudioPlayer>>, String> {
         // we dont use #has_key yet because it would get its own players clone & mutex lock
         if self.players.contains_key(&guild_id) {
             return Err(format!("player already exists under the guild id {}", &guild_id));

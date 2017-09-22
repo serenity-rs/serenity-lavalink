@@ -29,15 +29,15 @@ pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> 
     let player_manager = data.get::<keys::LavalinkAudioPlayerManager>().unwrap().clone();
     let player_manager = player_manager.lock().unwrap();
 
-    let player_exists = player_manager.has_player(&guild_id);
+    let player_exists = player_manager.has_player(&guild_id.0);
 
     let player = if player_exists {
-        player_manager.get_player(&guild_id).expect("audio player should be present for guild")
+        player_manager.get_player(&guild_id.0).expect("audio player should be present for guild")
     } else {
         let mut player_manager = player_manager;
         let ws_tx = data.get::<keys::LavalinkSocketSender>().unwrap().clone();
 
-        match player_manager.create_player(ws_tx, guild_id) {
+        match player_manager.create_player(ws_tx, guild_id.0) {
             Ok(player) => player,
             Err(e) => {
                 println!("error creating player {:?}", e);
@@ -58,7 +58,7 @@ pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> 
     listener.on_track_end = |player, track, reason| {
         println!("ended track {} for player of guild {:?}. reason: {}", track, player.guild_id, reason);
     };
-    
+
     let mut player = player.lock().unwrap();
 
     // register the listener

@@ -15,7 +15,7 @@ use std::thread::{self, JoinHandle};
 use parking_lot;
 use serde_json::Value;
 use serenity::gateway::Shard;
-use serenity::model::GuildId;
+
 use websocket::{Message, OwnedMessage};
 use websocket::client::ClientBuilder;
 use websocket::header::Headers;
@@ -209,7 +209,7 @@ impl Socket {
                             },
                             PlayerUpdate => {
                                 let guild_id_str = json["guildId"].as_str().expect("expected json guildId - should be str");
-                                let guild_id = GuildId(guild_id_str.parse::<u64>().expect("could not parse json guild_id into u64"));
+                                let guild_id = guild_id_str.parse::<u64>().expect("could not parse json guild_id into u64");
                                 let state = json["state"].as_object().expect("json does not contain state object");
                                 let time = state["time"].as_i64().expect("json state object does not contain time - should be i64");
                                 let position = state["position"].as_i64().expect("json state object does not contain position - should be i64");
@@ -227,8 +227,6 @@ impl Socket {
                                 let mut player = player.lock().expect("could not get access to player mutex"); // unlock the player mutex
                                 player.time = time;
                                 player.position = position;
-
-                                println!("updated player state for guild {:?}", &guild_id);
                             },
                             Stats => {
                                 let stats = RemoteStats::from_json(&json);
@@ -237,21 +235,55 @@ impl Socket {
                                 state.stats = Some(stats);
                             },
                             Event => {
-                                let _guild_id = json["guildId"].as_str().expect("invalid json guildId - should be str");
-                                let _track = json["track"].as_str().expect("invalid json track - should be str");
+                                let guild_id_str = json["guildId"].as_str().expect("invalid json guildId - should be str");
+                                let guild_id = guild_id_str.parse::<u64>().expect("could not parse json guild_id into u64");
+                                let track = json["track"].as_str().expect("invalid json track - should be str");
+
+                                let player_manager = player_manager_cloned.lock().expect("could not get access to player_manager mutex"); // unlock the mutex
+
+                                let player = match player_manager.get_player(&guild_id) {
+                                    Some(player) => player, // returns already cloned Arc
+                                    None => {
+                                        println!("got invalid audio player update for guild {:?}", &guild_id);
+                                        continue;
+                                    }
+                                };
+
+                                let mut player = player.lock().expect("could not get access to player mutex"); // unlock the player mutex
 
                                 match json["type"].as_str().unwrap() {
                                     "TrackEndEvent" => {
-                                        let _reason = json["reason"].as_str().unwrap();
+                                        let reason = json["reason"].as_str().expect("invalid json reason - should be str");
+                                        
+                                        player.track = None; // set track to None so nothing is playing
+                                        player.time = 0; // reset the time
+                                        player.position = 0; // reset the position
+
+                                        for listener in &player.listeners {
+                                            let on_track_end = &listener.on_track_end;
+                                            on_track_end(&player, track, reason);
+                                        }
                                     },
                                     "TrackExceptionEvent" => {
-                                        let _error = json["error"].as_str().unwrap();
+                                        let error = json["error"].as_str().expect("invalid json error - should be str");
+                                    
+                                        // todo determine if should keep playing
+
+                                        for listener in &player.listeners {
+                                            let on_track_exception = &listener.on_track_exception;
+                                            on_track_exception(&player, track, error);
+                                        }
                                     },
                                     "TrackStuckEvent" => {
-                                        let _threshold_ms = json["thresholdMs"].as_i64().unwrap();
+                                        let threshold_ms = json["thresholdMs"].as_i64().expect("invalid json thresholdMs - should be i64");
+                                    
+                                        for listener in &player.listeners {
+                                            let on_track_stuck = &listener.on_track_stuck;
+                                            on_track_stuck(&player, track, threshold_ms);
+                                        }
                                     },
                                     unexpected => {
-                                        println!("Unexpected event type: {}", unexpected)
+                                        println!("Unexpected event type: {}", unexpected);
                                     }
                                 }
                             }

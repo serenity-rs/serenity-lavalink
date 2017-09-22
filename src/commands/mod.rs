@@ -1,4 +1,5 @@
 pub mod admin;
+pub mod current;
 pub mod meta;
 pub mod pause;
 pub mod play;
