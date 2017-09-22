@@ -20,8 +20,6 @@ use websocket::{Message, OwnedMessage};
 use websocket::client::ClientBuilder;
 use websocket::header::Headers;
 
-const WEBSOCKET_PROTOCOL: &'static str = "rust-websocket";
-
 pub struct SocketState {
     pub stats: Option<RemoteStats>,
 }
@@ -53,7 +51,7 @@ impl Socket {
 
         let client = ClientBuilder::new(config.websocket_host.clone().as_ref())
             .unwrap()
-            .add_protocol(WEBSOCKET_PROTOCOL)
+            .add_protocol("rust-websocket")
             .custom_headers(&headers)
             .connect_insecure()
             .unwrap();
