@@ -49,6 +49,7 @@ pub struct AudioPlayer {
     pub time: i64,
     pub position: i64,
     pub paused: bool,
+    pub volume: i32,
     listeners: Vec<AudioPlayerListener>,
 }
 
@@ -61,6 +62,7 @@ impl AudioPlayer {
             time: 0,
             position: 0,
             paused: false,
+            volume: 100,
             listeners: Vec::new(),
         }
     }
@@ -96,20 +98,77 @@ impl AudioPlayer {
         }
     }
 
-    pub fn stop(&self) {
+    pub fn stop(&mut self) {
+        let result = self.send(message::stop(
+            &self.guild_id.0.to_string()
+        ));
+        
+        match result {
+            Ok(_) => {
+                let track = self.track.clone().unwrap_or("no track in state".to_string());
+                self.track = None;
+
+                for listener in &self.listeners {
+                    let on_track_end = &listener.on_track_end;
+                    on_track_end(self, track.to_string(), "no reason :) :dabs:".to_string());
+                }
+
+                println!("stopped playing track {:?}", track);
+            },
+            Err(e) => {
+                println!("stop websocket send error {:?}", e);
+            },
+        }
+    }
+
+    pub fn pause(&mut self, pause: bool) {
+        let result = self.send(message::pause(
+            &self.guild_id.0.to_string(), 
+            pause
+        ));
+        
+        match result {
+            Ok(_) => {
+                self.paused = pause;
+                
+                for listener in &self.listeners {
+                    let handler = if pause {
+                        &listener.on_player_pause
+                    } else {
+                        &listener.on_player_resume
+                    };
+
+                    handler(self);
+                }
+
+                println!("pause audio player: {}", pause);
+            },
+            Err(e) => {
+                println!("pause websocket send error {:?}", e);
+            },
+        }
+    }
+
+    pub fn seek(&mut self, position: i64) {
         unimplemented!()
     }
 
-    pub fn pause(&self, pause: bool) {
-        unimplemented!()
-    }
+    pub fn volume(&mut self, volume: i32) {
+        let result = self.send(message::volume(
+            &self.guild_id.0.to_string(), 
+            volume
+        ));
+        
+        match result {
+            Ok(_) => {
+                self.volume = volume;
 
-    pub fn seek(&self, position: i64) {
-        unimplemented!()
-    }
-
-    pub fn volume(&self, volume: i32) {
-        unimplemented!()
+                println!("started playing track {:?}", self.track);
+            },
+            Err(e) => {
+                println!("play websocket send error {:?}", e);
+            },
+        }
     }
 }
 
