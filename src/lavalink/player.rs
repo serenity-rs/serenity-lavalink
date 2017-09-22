@@ -67,7 +67,7 @@ impl AudioPlayer {
     }
 
     pub fn add_listener(&mut self, listener: AudioPlayerListener) {
-        self.listeners.push(AudioPlayerListener::new());
+        self.listeners.push(listener);
     }
 
     fn send(&self, message: OwnedMessage) -> Result<(), SendError<OwnedMessage>> {

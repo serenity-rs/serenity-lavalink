@@ -45,8 +45,26 @@ pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> 
             }
         }
     };
+    
+    // create a new event listener for the player
+    let mut listener = AudioPlayerListener::new();
+
+    // listen for the track start event
+    listener.on_track_start = |player, track| {
+        println!("started track {} for player of guild {:?}", track, player.guild_id);
+    };
+
+    // listen for the track end event
+    listener.on_track_end = |player, track, reason| {
+        println!("ended track {} for player of guild {:?}. reason: {}", track, player.guild_id, reason);
+    };
+    
     let mut player = player.lock().unwrap();
 
+    // register the listener
+    player.add_listener(listener);
+
+    // play the track :)
     player.play(track);
 
     Ok(())
