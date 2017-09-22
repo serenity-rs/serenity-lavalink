@@ -130,16 +130,34 @@ impl Socket {
                         }
                     },
                     OwnedMessage::Text(data) => {
-                        let json: Value = serde_json::from_str(data.as_ref()).unwrap();
-                        let op = json["op"].as_str().unwrap();
-                        let opcode = Opcode::from_str(op).unwrap();
+                        let json: Value = match serde_json::from_str(data.as_ref()) {
+                            Ok(json) => json,
+                            Err(e) => {
+                                println!("could not parse json {:?}", e);
+                                continue;
+                            }
+                        };
+
+                        let opcode = match json["op"].as_str() {
+                            Some(opcode) => match Opcode::from_str(opcode) {
+                                Ok(opcode) => opcode,
+                                Err(e) => {
+                                    println!("could not parse json opcode {:?}", e);
+                                    continue;
+                                }
+                            },
+                            None => {
+                                println!("json did not include opcode - disgarding message");
+                                continue;
+                            }
+                        };
 
                         use super::opcodes::Opcode::*;
 
                         match opcode {
                             SendWS => {
-                                let shard_id = json["shardId"].as_u64().unwrap();
-                                let message = json["message"].as_str().unwrap();
+                                let shard_id = json["shardId"].as_u64().expect("invalid json shardId - should be u64");
+                                let message = json["message"].as_str().expect("invalid json message - should be str");
 
                                 let shards = &*shards.lock();
                                 let shard = &mut *shards.get(&shard_id).unwrap().lock();
@@ -176,26 +194,29 @@ impl Socket {
                                 };*/
                                 let valid = true; // todo remove
 
-                                let json = message::validation_response(guild_id_str, channel_id_str, valid);
-
-                                let _ = ws_tx_1.send(json);
+                                let _ = ws_tx_1.send(message::validation_response(
+                                    guild_id_str, 
+                                    channel_id_str, 
+                                    valid
+                                ));
                             },
                             IsConnectedRequest => {
-                                let shard_id = json["shardId"].as_u64().unwrap();
+                                let shard_id = json["shardId"].as_u64().expect("invalid json shardId - should be u64");
                                 let shards = &*shards.lock();
 
-                                let json = message::is_connected_response(shard_id, shards.contains_key(&shard_id));
-
-                                let _ = ws_tx_1.send(json);
+                                let _ = ws_tx_1.send(message::is_connected_response(
+                                    shard_id, 
+                                    shards.contains_key(&shard_id)
+                                ));
                             },
                             PlayerUpdate => {
-                                let guild_id_str = json["guild_id"].as_str().unwrap();
-                                let guild_id = GuildId(guild_id_str.parse::<u64>().unwrap());
-                                let state = json["state"].as_object().unwrap();
-                                let time = state["time"].as_i64().unwrap();
-                                let position = state["position"].as_i64().unwrap();
+                                let guild_id_str = json["guild_id"].as_str().expect("expected json guild_id - should be str");
+                                let guild_id = GuildId(guild_id_str.parse::<u64>().expect("could not parse json guild_id into u64"));
+                                let state = json["state"].as_object().expect("json does not contain state object");
+                                let time = state["time"].as_i64().expect("json state object does not contain time - should be i64");
+                                let position = state["position"].as_i64().expect("json state object does not contain position - should be i64");
                                 
-                                let player_manager = player_manager_cloned.lock().unwrap(); // unlock the mutex
+                                let player_manager = player_manager_cloned.lock().expect("could not get access to player_manager mutex"); // unlock the mutex
 
                                 let player = match player_manager.get_player(&guild_id) {
                                     Some(player) => player, // returns already cloned Arc
@@ -205,7 +226,7 @@ impl Socket {
                                     }
                                 };
 
-                                let mut player = player.lock().unwrap(); // unlock the player mutex
+                                let mut player = player.lock().expect("could not get access to player mutex"); // unlock the player mutex
                                 player.time = time;
                                 player.position = position;
 
@@ -214,12 +235,12 @@ impl Socket {
                             Stats => {
                                 let stats = RemoteStats::from_json(&json);
 
-                                let mut state = recv_state.lock().unwrap();
+                                let mut state = recv_state.lock().expect("could not get access to recv_state mutex");
                                 state.stats = Some(stats);
                             },
                             Event => {
-                                let _guild_id = json["guildId"].as_str().unwrap();
-                                let _track = json["track"].as_str().unwrap();
+                                let _guild_id = json["guildId"].as_str().expect("invalid json guildId - should be str");
+                                let _track = json["track"].as_str().expect("invalid json track - should be str");
 
                                 match json["type"].as_str().unwrap() {
                                     "TrackEndEvent" => {
@@ -258,7 +279,11 @@ impl Socket {
 
     pub fn send(&self, message: OwnedMessage) -> Result<(), SendError<OwnedMessage>> {
         let ws_tx = self.ws_tx.clone();
-        let result = ws_tx.lock().unwrap().send(message);
+        
+        let result = ws_tx.lock()
+            .expect("could not get access to ws_tx mutex")
+            .send(message);
+
         result
     }
 
