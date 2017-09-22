@@ -19,13 +19,9 @@ fn toggle_paused(ctx: &mut Context, msg: &Message, pause: bool) -> Result<(), St
     let data = ctx.data.lock();
     let ws_tx = data.get::<keys::LavalinkSocketSender>().unwrap().clone();
 
-    let response = if pause {
-        "pausing music :("
-    } else {
-        "resuming music :)"
-    };
-
-    let _ = msg.channel_id.say(response);
+    let _ = msg.channel_id.say(
+        if pause { "pausing music" } else { "resuming music" }
+    );
 
     let _ = ws_tx.lock().unwrap().send(message::pause(&guild_id, pause));
     

@@ -7,14 +7,13 @@ use serenity::client::Context;
 use serenity::framework::standard::Args;
 
 pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> {
-    let args = match args.list::<String>() {
-        Ok(args) => args,
+    let track = match args.clone().single::<String>() {
+        Ok(track) => track,
         Err(_) => {
             let _ = msg.channel_id.say("usage: !play <encoded track>");
             return Ok(());
         },
     };
-    let track = args.get(0).unwrap();
 
     let guild_id = match msg.guild_id() {
         Some(guild_id) => guild_id,
@@ -26,7 +25,7 @@ pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> 
     
     let data = ctx.data.lock();
 
-    let player_manager = data.get::<keys::LavalinkAudioPlayerManager>().unwrap().clone();
+    let player_manager = data.get::<keys::LavalinkAudioPlayerManager>().unwrap();
     let player_manager = player_manager.lock().unwrap();
 
     let player = if player_manager.has_player(&guild_id.0) {
@@ -57,7 +56,7 @@ pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> 
         };
         
         {
-            let player = player.clone(); // clone the arc (again)
+            let player = &player;
             let mut player = player.lock().unwrap();
 
             // register the listener
@@ -67,10 +66,8 @@ pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> 
         player
     };
 
-    let mut player = player.lock().unwrap();
-
-    // play the track :)
-    player.play(track);
+    player.lock().as_mut().map(|lock| lock.play(&track))
+        .expect("error obtaining lock on player & calling play");
 
     Ok(())
 }
