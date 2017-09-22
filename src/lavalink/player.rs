@@ -86,8 +86,6 @@ impl AudioPlayer {
                     let on_track_start = &listener.on_track_start;
                     on_track_start(self, track);
                 }
-
-                println!("started playing track {:?}", self.track);
             },
             Err(e) => {
                 println!("play websocket send error {:?}", e);
@@ -161,7 +159,7 @@ impl AudioPlayer {
             Ok(_) => {
                 self.volume = volume;
 
-                println!("started playing track {:?}", self.track);
+                println!("set volume {:?}", self.volume);
             },
             Err(e) => {
                 println!("play websocket send error {:?}", e);

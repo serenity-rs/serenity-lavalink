@@ -163,8 +163,8 @@ impl Socket {
                                 let _ = shard.client.send_message(&OwnedMessage::Text(message.to_owned()));
                             },
                             ValidationRequest => {
-                                let guild_id_str = json["guildId"].as_str().unwrap();
-                                let _guild_id_u64 = guild_id_str.parse::<u64>().unwrap();
+                                let guild_id_str = json["guildId"].as_str().expect("invalid json guildId - should be str");
+                                let _guild_id_u64 = guild_id_str.parse::<u64>().expect("could not parse json guildId as u64");
                                 let channel_id_str = json["channelId"].as_str();
 
                                 // serenity inserts guilds into the cache once it becomes available
