@@ -4,9 +4,8 @@ use super::socket::SocketSender;
 use serenity::model::GuildId;
 
 use std::collections::HashMap;
-use std::marker::Send;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Sender, SendError};
+use std::sync::mpsc::SendError;
 
 use websocket::OwnedMessage;
 
@@ -18,24 +17,24 @@ type TrackExceptionHandler = fn(&AudioPlayer, String, String);
 type TrackStuckHandler = fn(&AudioPlayer, String, i64);
 
 pub struct AudioPlayerListener {
-    pub on_player_pause: Box<PlayerPauseHandler>,
-    pub on_player_resume: Box<PlayerResumeHandler>,
-    pub on_track_start: Box<TrackStartHandler>,
-    pub on_track_end: Box<TrackEndHandler>,
-    pub on_track_exception: Box<TrackExceptionHandler>,
-    pub on_track_stuck: Box<TrackStuckHandler>,
+    pub on_player_pause: PlayerPauseHandler,
+    pub on_player_resume: PlayerResumeHandler,
+    pub on_track_start: TrackStartHandler,
+    pub on_track_end: TrackEndHandler,
+    pub on_track_exception: TrackExceptionHandler,
+    pub on_track_stuck: TrackStuckHandler,
 }
 
 impl AudioPlayerListener {
     pub fn new() -> Self {
         Self {
             // disgusting..
-            on_player_pause: Box::new(|_| {}),
-            on_player_resume: Box::new(|_| {}),
-            on_track_start: Box::new(|_, _| {}),
-            on_track_end: Box::new(|_, _, _| {}),
-            on_track_exception: Box::new(|_, _, _| {}),
-            on_track_stuck: Box::new(|_, _, _| {}),
+            on_player_pause: |_| {},
+            on_player_resume: |_| {},
+            on_track_start: |_, _| {},
+            on_track_end: |_, _, _| {},
+            on_track_exception: |_, _, _| {},
+            on_track_stuck: |_, _, _| {},
         }
     }
 }
@@ -149,6 +148,7 @@ impl AudioPlayer {
         }
     }
 
+    #[allow(unused)]
     pub fn seek(&mut self, position: i64) {
         unimplemented!()
     }
