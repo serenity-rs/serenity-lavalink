@@ -29,9 +29,7 @@ pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> 
     let player_manager = data.get::<keys::LavalinkAudioPlayerManager>().unwrap().clone();
     let player_manager = player_manager.lock().unwrap();
 
-    let player_exists = player_manager.has_player(&guild_id.0);
-
-    let player = if player_exists {
+    let player = if player_manager.has_player(&guild_id.0) {
         player_manager.get_player(&guild_id.0).expect("audio player should be present for guild")
     } else {
         let mut player_manager = player_manager;
