@@ -1,5 +1,7 @@
 use keys;
 
+use lavalink::stats::RemoteStats;
+
 use serenity::model::*;
 use serenity::client::Context;
 use serenity::framework::standard::Args;
@@ -15,24 +17,30 @@ pub fn ping(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
     Ok(())
 }
 
-pub fn stats(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
+fn get_socket_stats(ctx: &mut Context) -> Result<RemoteStats, &'static str> {
     let data = ctx.data.lock();
 
-    let socket_state = data.get::<keys::LavalinkSocketState>().unwrap();
-    let socket_state = socket_state.lock().unwrap();
-
-    let stats = match socket_state.stats.clone() {
-        Some(stats) => stats,
-        None => {
-            let _ = msg.channel_id.say("sry lol no node stats available");
-            return Ok(());
-        },
+    let socket_state = match data.get::<keys::LavalinkSocketState>() {
+        Some(socket_state) => socket_state,
+        None => return Err("keys::LavalinkSocketState is not present in Context::data"),
     };
     
-    let mut response = String::new();
-    response.push_str(&format!("lavalink node:```\n{:?}\n```", &stats));
+    let socket_state = socket_state.lock().expect("could not get lock on socket state");
 
-    let _ = msg.channel_id.say(response);
+    match socket_state.stats.clone() {
+        Some(stats) => Ok(stats),
+        None => {
+            Err("no socket stats are available yet")
+        }
+    }
+}
+
+pub fn stats(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
+    let stats = get_socket_stats(ctx);
+
+    let _ = msg.channel_id.say(
+        &format!("lavalink node:```\n{:?}\n```", &stats)
+    );
 
     Ok(())
 }
