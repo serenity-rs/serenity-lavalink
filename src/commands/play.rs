@@ -1,10 +1,9 @@
 use keys;
 
 use lavalink::player::AudioPlayerListener;
-
-use serenity::model::*;
 use serenity::client::Context;
 use serenity::framework::standard::Args;
+use serenity::model::*;
 
 pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> {
     let track = match args.clone().single::<String>() {

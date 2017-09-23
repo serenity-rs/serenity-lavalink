@@ -2,12 +2,12 @@ extern crate serde_json; // idk why this is required for serde_json's functions
 
 use super::config::Config;
 
+use futures::{future, Future, Stream};
 use hyper::{Client, Request, Method, Body, Error};
 use hyper::client::HttpConnector;
 use hyper_tls::HttpsConnector;
-use tokio_core::reactor::Core;
-use futures::{future, Future, Stream};
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
+use tokio_core::reactor::Core;
 
 pub struct HttpClient {
     core: Core,

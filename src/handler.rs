@@ -1,11 +1,10 @@
 use keys;
 
 use lavalink::message;
-
 use serenity::client::CACHE;
 use serenity::model::*;
-use serenity::prelude::*;
 use serenity::model::event::*;
+use serenity::prelude::*;
 
 pub struct Handler;
 

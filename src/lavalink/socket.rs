@@ -15,16 +15,18 @@ use std::thread::{self, JoinHandle};
 use parking_lot;
 use serde_json::Value;
 use serenity::gateway::Shard;
-
 use websocket::{Message, OwnedMessage};
 use websocket::client::ClientBuilder;
 use websocket::header::Headers;
 
-pub struct SocketState {
+pub type SocketSender = Arc<Mutex<Sender<OwnedMessage>>>;
+pub type SocketState = Arc<Mutex<State>>;
+
+pub struct State {
     pub stats: Option<RemoteStats>,
 }
 
-impl SocketState {
+impl State {
     fn new() -> Self {
         Self { 
             stats: None,
@@ -32,13 +34,11 @@ impl SocketState {
     }
 }
 
-pub type SocketSender = Arc<Mutex<Sender<OwnedMessage>>>;
-
 pub struct Socket {
     pub ws_tx: SocketSender,
     pub send_loop: JoinHandle<()>,
     pub recv_loop: JoinHandle<()>,
-    pub state: Arc<Mutex<SocketState>>,
+    pub state: SocketState,
     pub player_manager: Arc<Mutex<AudioPlayerManager>>,
 }
 
@@ -61,7 +61,7 @@ impl Socket {
         let (ws_tx, ws_rx) = channel();
         let ws_tx_1 = ws_tx.clone();
 
-        let state = Arc::new(Mutex::new(SocketState::new()));
+        let state = Arc::new(Mutex::new(State::new()));
 
         let builder = thread::Builder::new().name("send loop".into());
         let send_loop = builder.spawn(move || {

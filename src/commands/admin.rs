@@ -1,8 +1,8 @@
 use keys;
 
-use serenity::model::*;
 use serenity::client::Context;
 use serenity::framework::standard::Args;
+use serenity::model::*;
 
 pub fn shutdown(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
     let _ = msg.channel_id.say("Shutting down!");

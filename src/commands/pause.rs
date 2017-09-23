@@ -1,10 +1,9 @@
 use keys;
 
 use lavalink::message;
-
-use serenity::model::*;
 use serenity::client::Context;
 use serenity::framework::standard::Args;
+use serenity::model::*;
 
 fn toggle_paused(ctx: &mut Context, msg: &Message, pause: bool) -> Result<(), String> {
     let guild_id = match msg.guild_id() {
@@ -23,7 +22,7 @@ fn toggle_paused(ctx: &mut Context, msg: &Message, pause: bool) -> Result<(), St
     }
 
     let _ = msg.channel_id.say(
-        String::from(if pause { "paused" } else { "resuming" }) + " music"
+        String::from(if pause { "paus" } else { "resum" }) + "ed music"
     );
     
     Ok(())

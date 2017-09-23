@@ -1,5 +1,5 @@
-use std::string::ToString;
 use std::str::FromStr;
+use std::string::ToString;
 
 #[derive(Debug)]
 pub enum Opcode {

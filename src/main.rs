@@ -1,30 +1,29 @@
-extern crate serenity;
 extern crate dotenv;
-extern crate websocket;
-#[macro_use] extern crate serde_json;
-#[macro_use] extern crate serde_derive;
+extern crate futures;
 extern crate hyper;
 extern crate hyper_tls;
-extern crate tokio_core;
-extern crate futures;
-extern crate percent_encoding;
-extern crate typemap;
 extern crate parking_lot;
+extern crate percent_encoding;
+#[macro_use] extern crate serde_derive;
+#[macro_use] extern crate serde_json;
+extern crate serenity;
+extern crate tokio_core;
+extern crate typemap;
+extern crate websocket;
 
 mod commands;
-mod lavalink;
 mod handler;
 mod keys;
-
-use lavalink::config::Config;
-use lavalink::socket::Socket;
+mod lavalink;
 
 use std::env;
 
+use dotenv::dotenv;
+use lavalink::config::Config;
+use lavalink::socket::Socket;
 use serenity::framework::StandardFramework;
 use serenity::framework::standard::help_commands;
 use serenity::prelude::*;
-use dotenv::dotenv;
 
 fn main() {
     // load .env into environment variables
@@ -55,12 +54,10 @@ fn main() {
             .allow_dm(false)
             .allow_whitespace(true)
             .ignore_bots(true))
-            
         .group("admin", |g| g
             .command("shutdown", |c| c
                 .exec(commands::admin::shutdown)
                 .desc("turns the bot off")))
-
         .group("meta", |g| g
             .command("help", |c| c
                 .exec_help(help_commands::with_embeds)
@@ -71,7 +68,6 @@ fn main() {
             .command("stats", |c| c
                 .exec(commands::meta::stats)
                 .desc("shows lavalink node statistics")))
-
         .group("search", |g| g
             .command("search", |c| c
                 .exec(commands::search::search)
@@ -79,7 +75,6 @@ fn main() {
                 .example("search ytsearch:ncs mix")
                 .usage("search <[prefix:]identifier>\nAvailable prefixes: ytsearch, scsearch")
                 .min_args(1)))
-
         .group("voice", |g| g
             .command("join", |c| c
                 .exec(commands::voice::join)
@@ -88,7 +83,6 @@ fn main() {
             .command("leave", |c| c
                 .exec(commands::voice::leave)
                 .desc("leaves a voice channel")))
-        
         .group("audio", |g| g
             .command("play", |c| c
                 .exec(commands::play::play)

@@ -1,10 +1,9 @@
 use keys;
 
 use lavalink::message;
-
-use serenity::model::*;
 use serenity::client::Context;
 use serenity::framework::standard::Args;
+use serenity::model::*;
 
 const INVALID_ARGUMENTS_MESSAGE: &'static str = "usage: `!volume <1 to 150>` (default 100)";
 

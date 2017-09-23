@@ -1,10 +1,9 @@
 use keys;
 
 use lavalink::message;
-
-use serenity::model::*;
 use serenity::client::Context;
 use serenity::framework::standard::Args;
+use serenity::model::*;
 
 pub fn join(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
     let guild = match msg.guild() {

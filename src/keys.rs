@@ -1,35 +1,37 @@
-use lavalink;
-use serenity;
-use std::sync;
+use std::sync::{Arc, Mutex};
+
+use lavalink::config::Config;
+use lavalink::player::AudioPlayerManager;
+use lavalink::socket::{SocketSender, SocketState};
+use serenity::client::CloseHandle;
 use typemap::Key;
-use websocket;
 
 pub struct LavalinkAudioPlayerManager;
 
 impl Key for LavalinkAudioPlayerManager {
-    type Value = sync::Arc<sync::Mutex<lavalink::player::AudioPlayerManager>>;
+    type Value = Arc<Mutex<AudioPlayerManager>>;
 }
 
 pub struct LavalinkConfig;
 
 impl Key for LavalinkConfig {
-    type Value = lavalink::config::Config;
+    type Value = Config;
 }
 
 pub struct LavalinkSocketSender;
 
 impl Key for LavalinkSocketSender {
-    type Value = sync::Arc<sync::Mutex<sync::mpsc::Sender<websocket::OwnedMessage>>>;
+    type Value = SocketSender;
 }
 
 pub struct LavalinkSocketState;
 
 impl Key for LavalinkSocketState {
-    type Value = sync::Arc<sync::Mutex<lavalink::socket::SocketState>>;
+    type Value = SocketState;
 }
 
 pub struct SerenityCloseHandle;
 
 impl Key for SerenityCloseHandle {
-    type Value = serenity::client::CloseHandle;
+    type Value = CloseHandle;
 }

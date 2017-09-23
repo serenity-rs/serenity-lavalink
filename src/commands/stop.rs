@@ -1,10 +1,9 @@
 use keys;
 
 use lavalink::message;
-
-use serenity::model::*;
 use serenity::client::Context;
 use serenity::framework::standard::Args;
+use serenity::model::*;
 
 pub fn stop(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
     let guild_id = match msg.guild_id() {

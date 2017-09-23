@@ -1,6 +1,6 @@
 use keys::LavalinkConfig;
-use ::lavalink::rest;
 
+use lavalink::rest;
 use serenity::client::Context;
 use serenity::framework::standard::Args;
 use serenity::model::*;
