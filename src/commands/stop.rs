@@ -1,6 +1,5 @@
 use keys;
 
-use lavalink::message;
 use serenity::client::Context;
 use serenity::framework::standard::Args;
 use serenity::model::*;
