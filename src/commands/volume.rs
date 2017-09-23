@@ -7,7 +7,7 @@ use serenity::model::*;
 const INVALID_ARGUMENTS_MESSAGE: &'static str = "usage: `!volume <1 to 150>` (default 100)";
 
 pub fn volume(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> {
-    let volume = match args.clone().single::<i32>() {
+    let volume = match args.clone().single::<u8>() {
         Ok(volume) => volume,
         Err(_) => {
             let _ = msg.channel_id.say(INVALID_ARGUMENTS_MESSAGE);
@@ -45,7 +45,7 @@ pub fn volume(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String
             }
         };
 
-        player.lock().as_mut().map(|lock| lock.volume(volume))
+        player.lock().as_mut().map(|lock| lock.volume(volume as i32))
             .expect("error obtaining lock on player and changing volume");
     }
 
