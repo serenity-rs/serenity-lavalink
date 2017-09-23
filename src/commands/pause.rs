@@ -6,7 +6,6 @@ use serenity::model::*;
 use serenity::client::Context;
 use serenity::framework::standard::Args;
 
-#[inline]
 fn toggle_paused(ctx: &mut Context, msg: &Message, pause: bool) -> Result<(), String> {
     let guild_id = match msg.guild_id() {
         Some(guild_id) => guild_id.0.to_string(),
@@ -15,15 +14,17 @@ fn toggle_paused(ctx: &mut Context, msg: &Message, pause: bool) -> Result<(), St
             return Ok(());
         },
     };
-    
-    let data = ctx.data.lock();
-    let ws_tx = data.get::<keys::LavalinkSocketSender>().unwrap().clone();
+
+    {
+        let data = ctx.data.lock();
+        let ws_tx = data.get::<keys::LavalinkSocketSender>().unwrap();
+
+        let _ = ws_tx.lock().unwrap().send(message::pause(&guild_id, pause));
+    }
 
     let _ = msg.channel_id.say(
-        if pause { "pausing music" } else { "resuming music" }
+        String::from(if pause { "paused" } else { "resuming" }) + " music"
     );
-
-    let _ = ws_tx.lock().unwrap().send(message::pause(&guild_id, pause));
     
     Ok(())
 }

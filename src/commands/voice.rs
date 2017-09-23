@@ -36,8 +36,6 @@ pub fn join(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
     Ok(())
 }
 
-// todo test this
-
 pub fn leave(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
     let guild_id = match msg.guild_id() {
         Some(guild_id) => guild_id.0.to_string(),

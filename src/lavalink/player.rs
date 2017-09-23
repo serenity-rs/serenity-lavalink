@@ -64,10 +64,12 @@ impl AudioPlayer {
         }
     }
 
+    #[inline]
     pub fn add_listener(&mut self, listener: AudioPlayerListener) {
         self.listeners.push(listener);
     }
 
+    #[inline]
     fn send(&self, message: OwnedMessage) -> Result<(), SendError<OwnedMessage>> {
         self.sender.lock().unwrap().send(message)
     }
