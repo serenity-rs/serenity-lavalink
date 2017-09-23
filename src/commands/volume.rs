@@ -1,6 +1,5 @@
 use keys;
 
-use lavalink::message;
 use serenity::client::Context;
 use serenity::framework::standard::Args;
 use serenity::model::*;
@@ -8,14 +7,8 @@ use serenity::model::*;
 const INVALID_ARGUMENTS_MESSAGE: &'static str = "usage: `!volume <1 to 150>` (default 100)";
 
 pub fn volume(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> {
-    let volume = match args.clone().single::<String>() {
-        Ok(volume) => match volume.parse::<i32>() {
-            Ok(volume) => volume,
-            Err(_) => {
-                let _ = msg.channel_id.say(INVALID_ARGUMENTS_MESSAGE);
-                return Ok(());
-            }
-        },
+    let volume = match args.clone().single::<i32>() {
+        Ok(volume) => volume,
         Err(_) => {
             let _ = msg.channel_id.say(INVALID_ARGUMENTS_MESSAGE);
             return Ok(());
