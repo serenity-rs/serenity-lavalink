@@ -35,6 +35,36 @@ impl AudioPlayerListener {
             on_track_stuck: |_, _, _| {},
         }
     }
+
+    pub fn with_player_pause(mut self, handler: PlayerPauseHandler) -> Self {
+        self.on_player_pause = handler;
+        self
+    }
+
+    pub fn with_player_resume(mut self, handler: PlayerResumeHandler) -> Self {
+        self.on_player_resume = handler;
+        self
+    }
+
+    pub fn with_track_start(mut self, handler: TrackStartHandler) -> Self {
+        self.on_track_start = handler;
+        self
+    }
+
+    pub fn with_track_end(mut self, handler: TrackEndHandler) -> Self {
+        self.on_track_end = handler;
+        self
+    }
+
+    pub fn with_track_exception(mut self, handler: TrackExceptionHandler) -> Self {
+        self.on_track_exception = handler;
+        self
+    }
+
+    pub fn with_track_stuck(mut self, handler: TrackStuckHandler) -> Self {
+        self.on_track_stuck = handler;
+        self
+    }
 }
 
 // todo potentially split state into child struct to avoid mutable reference of AudioPlayer
