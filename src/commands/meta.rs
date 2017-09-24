@@ -27,8 +27,8 @@ fn get_socket_stats(ctx: &mut Context) -> Result<RemoteStats, &'static str> {
         None => return Err("keys::LavalinkSocketState is not present in Context::data"),
     };
     
-    let socket_state = socket_state.lock()
-        .expect("could not get lock on socket state");
+    let socket_state = socket_state.read()
+        .expect("could not get read lock on socket state");
 
     match socket_state.stats.clone() {
         Some(stats) => Ok(stats),

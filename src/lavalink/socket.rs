@@ -19,8 +19,9 @@ use websocket::{Message, OwnedMessage};
 use websocket::client::ClientBuilder;
 use websocket::header::Headers;
 
+pub type SocketAudioPlayerManager = Arc<RwLock<AudioPlayerManager>>;
 pub type SocketSender = Arc<Mutex<Sender<OwnedMessage>>>;
-pub type SocketState = Arc<Mutex<State>>;
+pub type SocketState = Arc<RwLock<State>>;
 
 pub struct State {
     pub stats: Option<RemoteStats>,
@@ -39,7 +40,7 @@ pub struct Socket {
     pub send_loop: JoinHandle<()>,
     pub recv_loop: JoinHandle<()>,
     pub state: SocketState,
-    pub player_manager: Arc<RwLock<AudioPlayerManager>>,
+    pub player_manager: SocketAudioPlayerManager,
 }
 
 impl Socket {
@@ -61,7 +62,7 @@ impl Socket {
         let (ws_tx, ws_rx) = channel();
         let ws_tx_1 = ws_tx.clone();
 
-        let state = Arc::new(Mutex::new(State::new()));
+        let state = Arc::new(RwLock::new(State::new()));
 
         let builder = thread::Builder::new().name("send loop".into());
         let send_loop = builder.spawn(move || {
@@ -231,7 +232,7 @@ impl Socket {
                             Stats => {
                                 let stats = RemoteStats::from_json(&json);
 
-                                let mut state = recv_state.lock().expect("could not get access to recv_state mutex");
+                                let mut state = recv_state.write().expect("could not get write lock on recv state");
                                 state.stats = Some(stats);
                             },
                             Event => {
