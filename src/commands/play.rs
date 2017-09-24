@@ -47,10 +47,10 @@ pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> 
         // create a new event listener for the player & register start and end listeners
         let listener = AudioPlayerListener::new()
             .with_track_start(|player, track| {
-                println!("started track {} for player of guild {:?}", track, player.guild_id);
+                println!("started track {:.15}... for player of guild {:?}", track, player.guild_id);
             })
             .with_track_end(|player, track, reason| {
-                println!("ended track {} for player of guild {:?}. reason: {}", track, player.guild_id, reason);
+                println!("ended track {:.15}... for player of guild {:?}. reason: {}", track, player.guild_id, reason);
             });
         
         // register the listener
