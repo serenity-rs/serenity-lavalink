@@ -163,7 +163,7 @@ impl Socket {
 
                                 let _ = shard.client.send_message(&OwnedMessage::Text(message.to_owned()));
                             },
-                            ValidationRequest => {
+                            ValidationReq => {
                                 let guild_id_str = json["guildId"].as_str().expect("invalid json guildId - should be str");
                                 let _guild_id_u64 = guild_id_str.parse::<u64>().expect("could not parse json guildId as u64");
                                 let channel_id_str = json["channelId"].as_str();
@@ -199,7 +199,7 @@ impl Socket {
                                     valid
                                 ));
                             },
-                            IsConnectedRequest => {
+                            IsConnectedReq => {
                                 let shard_id = json["shardId"].as_u64().expect("invalid json shardId - should be u64");
                                 let shards = &*shards.lock();
 

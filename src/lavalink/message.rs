@@ -40,7 +40,7 @@ pub fn validation_response(guild_id: &str, channel_id: Option<&str>, valid: bool
     let json = match channel_id {
         Some(channel_id) => {
             json!({
-                "op": ValidationResponse.to_string(),
+                "op": ValidationRes.to_string(),
                 "guildId": guild_id,
                 "channelId": channel_id,
                 "valid": valid,
@@ -48,7 +48,7 @@ pub fn validation_response(guild_id: &str, channel_id: Option<&str>, valid: bool
         },
         None => {
             json!({
-                "op": ValidationResponse.to_string(),
+                "op": ValidationRes.to_string(),
                 "guildId": guild_id,
                 "valid": valid,
             })
@@ -60,7 +60,7 @@ pub fn validation_response(guild_id: &str, channel_id: Option<&str>, valid: bool
 
 pub fn is_connected_response(shard_id: u64, connected: bool) -> OwnedMessage {
     from_json(json!({
-        "op": IsConnectedResponse.to_string(),
+        "op": IsConnectedRes.to_string(),
         "shardId": shard_id,
         "connected": connected,
     }))

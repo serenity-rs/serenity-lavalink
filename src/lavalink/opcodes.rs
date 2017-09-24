@@ -16,20 +16,20 @@ pub enum Opcode {
     Disconnect,
 
     // Request to check if the VC or Guild exists, and that we have access to the VC
-    ValidationRequest,
+    ValidationReq,
 
     // Response to ValidationRequest
     // guild_id: String, channel_id: Option<String>, valid: bool
     // IMPLEMENTATION.md: channel_id is omitted if the request does not display the channel id
     // I think using Option<String> and not including when serializing is the best option here
-    ValidationResponse,
+    ValidationRes,
 
     // Request to check if a shard's mainWS is connected
-    IsConnectedRequest,
+    IsConnectedReq,
 
     // Response to IsConnectedRequest
     // shard_id: i32, connected: bool
-    IsConnectedResponse,
+    IsConnectedRes,
 
     // Cause the player to play a track
     // guild_id: String, track: String, start_time: ?
@@ -72,28 +72,18 @@ pub enum Opcode {
 
 impl ToString for Opcode {
     fn to_string(&self) -> String {
-        use self::Opcode::*;
+        // convert opcode's fmt::Debug name to lowerCamelCase
+        let mut buf = String::new();
 
-        match *self {
-            ValidationRequest => "validationReq".to_owned(),
-            ValidationResponse => "validationRes".to_owned(),
-            IsConnectedRequest => "isConnectedReq".to_owned(),
-            IsConnectedResponse => "isConnectedRes".to_owned(),
-            _ => {
-                // convert opcode's fmt::Debug name to lowerCamelCase
-                let mut buf = String::new();
-
-                for (i, c) in format!("{:?}", *self).chars().enumerate() {
-                    if c.is_uppercase() && i == 0 {
-                        let _ = buf.push_str(c.to_lowercase().to_string().as_ref());
-                    } else {
-                        let _ = buf.push(c);
-                    }
-                }
-
-                buf
-            },
+        for (i, c) in format!("{:?}", *self).chars().enumerate() {
+            if c.is_uppercase() && i == 0 {
+                let _ = buf.push_str(c.to_lowercase().to_string().as_ref());
+            } else {
+                let _ = buf.push(c);
+            }
         }
+
+        buf
     }
 }
 
@@ -107,10 +97,10 @@ impl FromStr for Opcode {
             "connect" => Connect,
             "voiceUpdate" => VoiceUpdate,
             "disconnect" => Disconnect,
-            "validationReq" => ValidationRequest,
-            "validationRes" => ValidationResponse,
-            "isConnectedReq" => IsConnectedRequest,
-            "isConnectedRes" => IsConnectedResponse,
+            "validationReq" => ValidationReq,
+            "validationRes" => ValidationRes,
+            "isConnectedReq" => IsConnectedReq,
+            "isConnectedRes" => IsConnectedRes,
             "play" => Play,
             "stop" => Stop,
             "pause" => Pause,
