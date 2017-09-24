@@ -19,7 +19,7 @@ impl EventHandler for Handler {
             None => {
                 println!("got voice server update without a guild id?");
                 return;
-            }
+            },
         };
 
         let cache = CACHE.read().unwrap();
@@ -39,7 +39,7 @@ impl EventHandler for Handler {
             None => {
                 println!("no voice state found for user {:?}", &current_user_id);
                 return;
-            }
+            },
         };
 
         let guild_id = guild_id.to_string();
@@ -49,7 +49,7 @@ impl EventHandler for Handler {
             None => {
                 println!("no endpoint found in voice server update!");
                 return;
-            }
+            },
         };
 
         let json_data = message::voice_update(&voice_state.session_id, &guild_id, &event.token, &endpoint);

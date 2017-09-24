@@ -71,7 +71,7 @@ impl Socket {
                     Err(e) => {
                         println!("Send loop: {:?}", e);
                         return;
-                    }
+                    },
                 };
 
                 // handle close message, exit loop
@@ -89,7 +89,7 @@ impl Socket {
                         println!("Send loop: {:?}", e);
                         let _ = sender.send_message(&Message::close());
                         return;
-                    }
+                    },
                 }
             }
         }).unwrap();
@@ -108,7 +108,7 @@ impl Socket {
                         println!("Receive loop: {:?}", e);
                         let _ = ws_tx_1.send(OwnedMessage::Close(None));
                         return;
-                    }
+                    },
                 };
 
                 match message {
@@ -124,7 +124,7 @@ impl Socket {
                                 // ponged badly and had an error, exit loop!?!>!?
                                 println!("Receive loop: {:?}", e);
                                 return;
-                            }
+                            },
                         }
                     },
                     OwnedMessage::Text(data) => {
@@ -133,7 +133,7 @@ impl Socket {
                             Err(e) => {
                                 println!("could not parse json {:?}", e);
                                 continue;
-                            }
+                            },
                         };
 
                         let opcode = match json["op"].as_str() {
@@ -142,12 +142,12 @@ impl Socket {
                                 Err(e) => {
                                     println!("could not parse json opcode {:?}", e);
                                     continue;
-                                }
+                                },
                             },
                             None => {
                                 println!("json did not include opcode - disgarding message");
                                 continue;
-                            }
+                            },
                         };
 
                         use super::opcodes::Opcode::*;
@@ -221,7 +221,7 @@ impl Socket {
                                     None => {
                                         println!("got invalid audio player update for guild {:?}", &guild_id);
                                         continue;
-                                    }
+                                    },
                                 };
 
                                 let mut player = player.lock().expect("could not get access to player mutex"); // unlock the player mutex
@@ -284,7 +284,7 @@ impl Socket {
                                     },
                                     unexpected => {
                                         println!("Unexpected event type: {}", unexpected);
-                                    }
+                                    },
                                 }
                             }
                             _ => {},

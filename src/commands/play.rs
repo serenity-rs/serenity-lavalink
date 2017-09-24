@@ -41,7 +41,7 @@ pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> 
             Err(e) => {
                 println!("error creating player {:?}", e);
                 return Ok(());
-            }
+            },
         };
 
         // create a new event listener for the player

@@ -11,7 +11,7 @@ pub fn join(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
         None => {
             println!("None of them guilds :((");
             return Ok(());
-        }
+        },
     };
     
     let guild = guild.read().unwrap();

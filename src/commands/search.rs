@@ -11,7 +11,7 @@ pub fn search(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String
         Err(_) => {
             let _ = msg.channel_id.say("usage: !search <identifier>");
             return Ok(());
-        }
+        },
     };
 
     let data = ctx.data.lock();

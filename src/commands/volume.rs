@@ -12,7 +12,7 @@ pub fn volume(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String
         Err(_) => {
             let _ = msg.channel_id.say(INVALID_ARGUMENTS_MESSAGE);
             return Ok(());
-        }
+        },
     };
 
     if volume < 1 || volume > 150 {
@@ -42,7 +42,7 @@ pub fn volume(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String
             None => {
                 let _ = msg.channel_id.say("this guild does not have an audio player");
                 return Ok(());
-            }
+            },
         };
 
         player.lock().as_mut().map(|lock| lock.volume(volume as i32))

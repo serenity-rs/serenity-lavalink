@@ -34,7 +34,7 @@ fn get_socket_stats(ctx: &mut Context) -> Result<RemoteStats, &'static str> {
         Some(stats) => Ok(stats),
         None => {
             Err("no socket stats are available yet")
-        }
+        },
     }
 }
 

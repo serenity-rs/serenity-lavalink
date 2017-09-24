@@ -27,7 +27,7 @@ fn toggle_paused(ctx: &mut Context, msg: &Message, pause: bool) -> Result<(), St
             None => {
                 let _ = msg.channel_id.say("this guild does not have an audio player");
                 return Ok(());
-            }
+            },
         };
 
         player.lock().as_mut().map(|lock| lock.pause(pause))
