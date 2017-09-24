@@ -8,7 +8,7 @@ use super::stats::*;
 
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::sync::mpsc::{channel, Sender, SendError};
 use std::thread::{self, JoinHandle};
 
@@ -39,7 +39,7 @@ pub struct Socket {
     pub send_loop: JoinHandle<()>,
     pub recv_loop: JoinHandle<()>,
     pub state: SocketState,
-    pub player_manager: Arc<Mutex<AudioPlayerManager>>,
+    pub player_manager: Arc<RwLock<AudioPlayerManager>>,
 }
 
 impl Socket {
@@ -96,7 +96,7 @@ impl Socket {
 
         let recv_state = state.clone(); // clone state for the recv loop otherwise ownership passed
 
-        let player_manager = Arc::new(Mutex::new(AudioPlayerManager::new()));
+        let player_manager = Arc::new(RwLock::new(AudioPlayerManager::new()));
         let player_manager_cloned = player_manager.clone(); // clone for move to recv loop
 
         let builder = thread::Builder::new().name("recv loop".into());
@@ -214,7 +214,7 @@ impl Socket {
                                 let time = state["time"].as_i64().expect("json state object does not contain time - should be i64");
                                 let position = state["position"].as_i64().expect("json state object does not contain position - should be i64");
                                 
-                                let player_manager = player_manager_cloned.lock().expect("could not get access to player_manager mutex"); // unlock the mutex
+                                let player_manager = player_manager_cloned.read().expect("could not get access to player_manager mutex"); // unlock the mutex
 
                                 let player = match player_manager.get_player(&guild_id) {
                                     Some(player) => player, // returns already cloned Arc
@@ -239,7 +239,7 @@ impl Socket {
                                 let guild_id = guild_id_str.parse::<u64>().expect("could not parse json guild_id into u64");
                                 let track = json["track"].as_str().expect("invalid json track - should be str");
 
-                                let player_manager = player_manager_cloned.lock().expect("could not get access to player_manager mutex"); // unlock the mutex
+                                let player_manager = player_manager_cloned.read().expect("could not get access to player_manager mutex"); // unlock the mutex
 
                                 let player = match player_manager.get_player(&guild_id) {
                                     Some(player) => player, // returns already cloned Arc

@@ -18,7 +18,7 @@ pub fn current(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> 
     let player_manager = data.get::<keys::LavalinkAudioPlayerManager>()
         .expect("keys::LavalinkAudioPlayerManager is not present in Context::data").clone();
 
-    let player_manager = player_manager.lock().unwrap();
+    let player_manager = player_manager.read().unwrap();
 
     if !player_manager.has_player(&guild_id.0) {
         let _ = msg.channel_id.say("this channel does not have an audio player");

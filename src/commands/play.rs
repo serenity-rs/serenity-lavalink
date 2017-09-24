@@ -25,7 +25,7 @@ pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> 
     let data = ctx.data.lock();
 
     let player_manager = data.get::<keys::LavalinkAudioPlayerManager>().expect("could not get key::LavalinkAudioPlayerManager from Context::data");
-    let player_manager = player_manager.lock().expect("could not get lock on player manager");
+    let player_manager = player_manager.write().expect("could not get lock on player manager");
 
     let player = if player_manager.has_player(&guild_id.0) {
         player_manager.get_player(&guild_id.0)

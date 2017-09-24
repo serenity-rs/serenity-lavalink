@@ -19,7 +19,7 @@ pub fn stop(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
         let player_manager = data.get::<keys::LavalinkAudioPlayerManager>()
             .expect("keys::LavalinkAudioPlayerManager not present in Context::data");
 
-        let player_manager = player_manager.lock()
+        let player_manager = player_manager.read()
             .expect("could not obtain lock on player manager");
 
         let player = match player_manager.get_player(&guild_id) {

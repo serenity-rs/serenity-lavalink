@@ -19,7 +19,7 @@ fn toggle_paused(ctx: &mut Context, msg: &Message, pause: bool) -> Result<(), St
         let player_manager = data.get::<keys::LavalinkAudioPlayerManager>()
             .expect("keys::LavalinkAudioPlayerManager not present in Context::data");
 
-        let player_manager = player_manager.lock()
+        let player_manager = player_manager.read()
             .expect("could not obtain lock on player manager");
 
         let player = match player_manager.get_player(&guild_id) {

@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 use lavalink::config::Config;
 use lavalink::player::AudioPlayerManager;
@@ -9,7 +9,7 @@ use typemap::Key;
 pub struct LavalinkAudioPlayerManager;
 
 impl Key for LavalinkAudioPlayerManager {
-    type Value = Arc<Mutex<AudioPlayerManager>>;
+    type Value = Arc<RwLock<AudioPlayerManager>>;
 }
 
 pub struct LavalinkConfig;
