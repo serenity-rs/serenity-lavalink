@@ -73,17 +73,16 @@ pub enum Opcode {
 impl ToString for Opcode {
     fn to_string(&self) -> String {
         // convert opcode's fmt::Debug name to lowerCamelCase
-        let mut buf = String::new();
-
-        for (i, c) in format!("{:?}", *self).chars().enumerate() {
-            if c.is_uppercase() && i == 0 {
-                let _ = buf.push_str(c.to_lowercase().to_string().as_ref());
-            } else {
-                let _ = buf.push(c);
-            }
-        }
-
-        buf
+        format!("{:?}", *self).chars()
+            .enumerate()
+            .map(|(i, c)| {
+                if c.is_uppercase() && i == 0 {
+                    c.to_lowercase().next().unwrap()
+                } else {
+                    c
+                }
+            })
+            .collect::<String>()
     }
 }
 

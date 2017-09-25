@@ -37,7 +37,7 @@ pub fn disconnect(guild_id: &str) -> OwnedMessage {
 }
 
 pub fn validation_response(guild_id: &str, channel_id: Option<&str>, valid: bool) -> OwnedMessage {
-    let json = match channel_id {
+    from_json(match channel_id {
         Some(channel_id) => {
             json!({
                 "op": ValidationRes.to_string(),
@@ -53,9 +53,7 @@ pub fn validation_response(guild_id: &str, channel_id: Option<&str>, valid: bool
                 "valid": valid,
             })
         },
-    };
-    
-    from_json(json)
+    })
 }
 
 pub fn is_connected_response(shard_id: u64, connected: bool) -> OwnedMessage {
