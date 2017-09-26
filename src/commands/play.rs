@@ -46,11 +46,23 @@ pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> 
 
         // create a new event listener for the player & register start and end listeners
         let listener = AudioPlayerListener::new()
+            .with_player_pause(|player| {
+                println!("paused player for guild {:?}", player.guild_id);
+            })
+            .with_player_resume(|player| {
+                println!("resumed player for guild {:?}", player.guild_id);
+            })
             .with_track_start(|player, track| {
                 println!("started track {:.15}... for player of guild {:?}", track, player.guild_id);
             })
             .with_track_end(|player, track, reason| {
                 println!("ended track {:.15}... for player of guild {:?}. reason: {}", track, player.guild_id, reason);
+            })
+            .with_track_exception(|player, track, exception| {
+                println!("exception for track {:.15}... for player of guild {:?}: {}", track, player.guild_id, exception);
+            })
+            .with_track_stuck(|player, track, threshold_ms| {
+                println!("track stuck {:.15}... for player of guild {:?}. threshold_ms: {}", track, player.guild_id, threshold_ms);
             });
         
         // register the listener
