@@ -17,9 +17,8 @@ pub fn search(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String
     let data = ctx.data.lock();
     let config = data.get::<LavalinkConfig>().unwrap();
 
-    // haha yes this is incredibly inefficient sorry tokio :'(
-    let mut http_client = rest::HttpClient::new(&config);
-    let tracks = http_client.load_tracks(&identifier);
+    let http_client = rest::HttpClient::new(&config);
+    let tracks = http_client.load_tracks(&identifier).expect("could not load tracks");
 
     if tracks.len() == 0 {
         let _ = msg.channel_id.say("No results found!");

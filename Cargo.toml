@@ -6,16 +6,13 @@ authors = ["sponges <spongybacon@hotmail.co.uk>"]
 [dependencies]
 dotenv = "0.10.1"
 websocket = "0.20.2"
-tokio-core = "0.1"
-futures = "0.1"
 serde = "1.0.11"
 serde_json = "1.0.2"
 serde_derive = "1.0.11"
-hyper = "0.11.0"
-hyper-tls = "0.1.0"
 percent-encoding = "1.0.0"
 typemap = "0.3.3"
 parking_lot = "0.4"
+hyper = "~0.10"
 
 [dependencies.serenity]
 git = "https://github.com/zeyla/serenity"

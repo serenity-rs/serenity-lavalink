@@ -2,97 +2,121 @@ extern crate serde_json; // idk why this is required for serde_json's functions
 
 use super::config::Config;
 
-use futures::{future, Future, Stream};
-use hyper::{Client, Request, Method, Body, Error};
-use hyper::client::HttpConnector;
-use hyper_tls::HttpsConnector;
+use std::io::Read;
+
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
-use tokio_core::reactor::Core;
+use hyper::Error as HyperError;
+use hyper::client::{Client, RequestBuilder, Body};
+use hyper::header::{Headers, ContentType};
+use hyper::method::Method;
 
 pub struct HttpClient {
-    core: Core,
-    client: Client<HttpsConnector<HttpConnector>, Body>,
+    client: Client,
     host: String,
     password: String,
 }
 
 impl HttpClient {
     pub fn new(config: &Config) -> Self {
-        let core = Core::new().unwrap();
-        let handle = core.handle();
-        let client = Client::configure()
-            .connector(HttpsConnector::new(4, &handle).unwrap())
-            .build(&handle);
+        let client = Client::new();
 
         Self {
-            core,
             client,
             host: config.http_host.clone(),
             password: config.password.clone(),
         }
     }
 
-    fn create_request(&self, method: Method, uri: &str, body: Option<(Vec<u8>, &str)>) -> Request {
-        let uri = (self.host.clone() + uri).parse().expect("could not parse uri");
+    fn create_request<'a>(&'a self, method: Method, uri: &str, body: Option<(&'a [u8], ContentType)>) -> RequestBuilder {
+        let mut builder = self.client.request(method, &(self.host.clone() + uri));
 
-        let mut req = Request::new(method, uri);
-        req.headers_mut().set_raw("Authorization", self.password.clone());
+        let mut headers = Headers::new();
 
-        if let Some((body, content_type)) = body {
-            req.set_body(body);
-            req.headers_mut().set_raw("Content-Type", content_type.to_owned());
+        // cant use hyper::header::Authorization because it requires prefix of Basic or Bearer
+        headers.set_raw("Authorization", vec![self.password.as_bytes().to_vec()]);
+
+        match body {
+            Some((body, content_type)) => {
+                builder = builder.body(Body::BufBody(body, body.len()));
+                headers.set(content_type);
+            },
+            None => {},
         }
 
-        req
+        let builder = builder.headers(headers);
+
+        builder
     }
 
-    fn run_request(&mut self, request: Request) -> Vec<u8> {
-        let task = self.client.request(request).and_then(|response| {
-            // todo work out how the fuck this works
-            response.body().fold(Vec::new(), |mut v: Vec<u8>, chunk| {
-                v.extend(&chunk[..]);
-                future::ok::<_, Error>(v)
-            })
-        });
+    fn run_request(&self, request: RequestBuilder) -> Result<Vec<u8>, HyperError> {
+        match request.send() {
+            Ok(response) => {
+                Ok(response.bytes().fold(Vec::new(), |mut v: Vec<u8>, chunk| {
+                    match chunk {
+                        Ok(b) => v.push(b), // append the byte to the vec
+                        Err(e) => {
+                            println!("error parsing response body chunk {:?}", e);
+                            return v;
+                        },
+                    };
 
-        self.core.run(task).expect("an error occured when sending http request")
+                    v // return the vec as the final result
+                }))
+            },
+            Err(e) => Err(e),
+        }
     }
 
-    pub fn load_tracks(&mut self, identifier: &str) -> Vec<LoadedTrack> {
+    pub fn load_tracks<'a>(&self, identifier: &str) -> Result<Vec<LoadedTrack>, HyperError> {
         // url encoding the identifier
         let identifier = utf8_percent_encode(identifier, DEFAULT_ENCODE_SET);
 
         let uri = format!("/loadtracks?identifier={}", identifier);
         let request = self.create_request(Method::Get, uri.as_ref(), None);
 
-        let response = self.run_request(request);
+        let response = match self.run_request(request) {
+            Ok(response) => response, 
+            Err(e) => return Err(e),
+        };
+
         let deserialized: Vec<LoadedTrack> = serde_json::from_slice(&response).unwrap();
 
-        deserialized
+        Ok(deserialized)
     }
 
     #[allow(unused)]
-    pub fn decode_track(&mut self, track: &str) -> LoadedTrackInfo {
+    pub fn decode_track<'a>(&self, track: &str) -> Result<LoadedTrack, HyperError> {
         let uri = format!("/decodetrack?track={}", track);
         let request = self.create_request(Method::Get, uri.as_ref(), None);
 
-        let response = self.run_request(request);
+        let response = match self.run_request(request) {
+            Ok(response) => response,
+            Err(e) => return Err(e),
+        };
+
         let deserialized: LoadedTrackInfo = serde_json::from_slice(&response).unwrap();
 
-        deserialized
+        Ok(LoadedTrack {
+            track: track.to_string(),
+            info: deserialized,
+        })
     }
 
     #[allow(unused)]
-    pub fn decode_tracks(&mut self, tracks: Vec<String>) -> Vec<LoadedTrack> {
+    pub fn decode_tracks<'a>(&self, tracks: Vec<String>) -> Result<Vec<LoadedTrack>, HyperError> {
         let tracks = serde_json::to_vec(&tracks).unwrap();
-        let body = (tracks, "application/json");
+        let body = (tracks.as_ref(), ContentType::json());
 
         let request = self.create_request(Method::Post, "/decodetracks", Some(body));
 
-        let response = self.run_request(request);
+        let response = match self.run_request(request) {
+            Ok(response) => response,
+            Err(e) => return Err(e),
+        };
+
         let deserialized: Vec<LoadedTrack> = serde_json::from_slice(&response).unwrap();
 
-        deserialized
+        Ok(deserialized)
     }
 }
 
