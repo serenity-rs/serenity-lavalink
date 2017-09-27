@@ -67,7 +67,7 @@ impl HttpClient {
         }
     }
 
-    pub fn load_tracks<'a>(&self, identifier: &str) -> Result<Vec<LoadedTrack>, HyperError> {
+    pub fn load_tracks(&self, identifier: &str) -> Result<Vec<LoadedTrack>, HyperError> {
         // url encoding the identifier
         let identifier = utf8_percent_encode(identifier, DEFAULT_ENCODE_SET);
 
@@ -85,7 +85,7 @@ impl HttpClient {
     }
 
     #[allow(unused)]
-    pub fn decode_track<'a>(&self, track: &str) -> Result<LoadedTrack, HyperError> {
+    pub fn decode_track(&self, track: &str) -> Result<LoadedTrack, HyperError> {
         let uri = format!("/decodetrack?track={}", track);
         let request = self.create_request(Method::Get, uri.as_ref(), None);
 
@@ -103,7 +103,7 @@ impl HttpClient {
     }
 
     #[allow(unused)]
-    pub fn decode_tracks<'a>(&self, tracks: Vec<String>) -> Result<Vec<LoadedTrack>, HyperError> {
+    pub fn decode_tracks(&self, tracks: Vec<String>) -> Result<Vec<LoadedTrack>, HyperError> {
         let tracks = serde_json::to_vec(&tracks).unwrap();
         let body = (tracks.as_ref(), ContentType::json());
 
