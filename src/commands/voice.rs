@@ -1,11 +1,8 @@
 use keys;
 
 use lavalink::message;
-use serenity::client::Context;
-use serenity::framework::standard::Args;
-use serenity::model::*;
 
-pub fn join(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
+command!(join(ctx, msg) {
     let guild = match msg.guild() {
         Some(guild) => guild,
         None => {
@@ -31,11 +28,9 @@ pub fn join(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
     let ws_tx = data.get::<keys::LavalinkSocketSender>().unwrap().clone();
 
     let _ = ws_tx.lock().unwrap().send(message::connect(&guild.id.0.to_string(), &voice_state.channel_id.unwrap().to_string()));
+});
 
-    Ok(())
-}
-
-pub fn leave(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
+command!(leave(ctx, msg) {
     let guild_id = match msg.guild_id() {
         Some(guild_id) => guild_id.0.to_string(),
         None => {
@@ -50,6 +45,4 @@ pub fn leave(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
     let ws_tx = data.get::<keys::LavalinkSocketSender>().unwrap().clone();
 
     let _ = ws_tx.lock().unwrap().send(message::disconnect(&guild_id));
-
-    Ok(())
-}
+});

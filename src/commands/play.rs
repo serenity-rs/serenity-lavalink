@@ -1,11 +1,8 @@
 use keys;
 
 use lavalink::player::AudioPlayerListener;
-use serenity::client::Context;
-use serenity::framework::standard::Args;
-use serenity::model::*;
 
-pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> {
+command!(play(ctx, msg, args) {
     let track = match args.clone().single::<String>() {
         Ok(track) => track,
         Err(_) => {
@@ -24,7 +21,7 @@ pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> 
     
     let data = ctx.data.lock();
 
-    let player_manager = data.get::<keys::LavalinkAudioPlayerManager>().expect("could not get key::LavalinkAudioPlayerManager from Context::data");
+    let player_manager = data.get::<keys::LavalinkAudioPlayerManager>().expect("could not get keys::LavalinkAudioPlayerManager from Context::data");
     let player_manager = player_manager.write().expect("could not get lock on player manager");
 
     let player = if player_manager.has_player(&guild_id.0) {
@@ -74,6 +71,4 @@ pub fn play(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> 
 
     player.lock().as_mut().map(|lock| lock.play(&track))
         .expect("error obtaining lock on player & calling play");
-
-    Ok(())
-}
+});

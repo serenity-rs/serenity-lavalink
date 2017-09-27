@@ -1,10 +1,6 @@
 use keys;
 
-use serenity::client::Context;
-use serenity::framework::standard::Args;
-use serenity::model::*;
-
-pub fn current(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
+command!(current(ctx, msg) {
     let guild_id = match msg.guild_id() {
         Some(guild_id) => guild_id,
         None => {
@@ -35,6 +31,4 @@ pub fn current(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> 
         "track: {:?}\nposition/time: {}/{}\npaused: {}\nvolume: {}", 
         &player.track, player.position, player.time, player.paused, player.volume
     ));
-
-    Ok(())
-}
+});

@@ -1,12 +1,8 @@
 use keys;
 
-use serenity::client::Context;
-use serenity::framework::standard::Args;
-use serenity::model::*;
-
 const INVALID_ARGUMENTS_MESSAGE: &'static str = "usage: `!volume <1 to 150>` (default 100)";
 
-pub fn volume(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> {
+command!(volume(ctx, msg, args) {
     let volume = match args.clone().single::<u8>() {
         Ok(volume) => volume,
         Err(_) => {
@@ -50,6 +46,4 @@ pub fn volume(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String
     }
 
     let _ = msg.channel_id.say(&format!("changed volume to {}/150", volume));
-
-    Ok(())
-}
+});

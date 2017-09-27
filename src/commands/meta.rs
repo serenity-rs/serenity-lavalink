@@ -2,10 +2,8 @@ use keys;
 
 use lavalink::stats::RemoteStats;
 use serenity::client::Context;
-use serenity::framework::standard::Args;
-use serenity::model::*;
 
-pub fn ping(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
+command!(ping(ctx, msg) {
     let _ = if let Some(latency) = ctx.shard.lock().latency() {
         msg.channel_id.say(
             format!("Pong! Shard gateway heartbeat latency: {}.{}s",
@@ -13,9 +11,7 @@ pub fn ping(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
     } else {
         msg.channel_id.say("Pong! No latency recorded!")
     };
-
-    Ok(())
-}
+});
 
 fn get_socket_stats(ctx: &mut Context) -> Result<RemoteStats, &'static str> {
     // note when more stats functions are added this should be passed between them
@@ -38,12 +34,10 @@ fn get_socket_stats(ctx: &mut Context) -> Result<RemoteStats, &'static str> {
     }
 }
 
-pub fn stats(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
+command!(stats(ctx, msg) {
     let socket_stats = get_socket_stats(ctx); // as well as looking cleaner this should reduce the scope of the locks
 
     let _ = msg.channel_id.say(
         &format!("lavalink node:```\n{:?}\n```", socket_stats)
     );
-
-    Ok(())
-}
+});

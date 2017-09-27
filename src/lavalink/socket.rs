@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::sync::mpsc::{channel, Sender, SendError};
 use std::thread::{self, JoinHandle};
 
+use evzht9h3nznqzwl::Message as SerenityWSMessage;
 use parking_lot;
 use serde_json::Value;
 use serenity::gateway::Shard;
@@ -161,7 +162,8 @@ impl Socket {
                                 let shards = &*shards.lock();
                                 let shard = &mut *shards.get(&shard_id).unwrap().lock();
 
-                                let _ = shard.client.send_message(&OwnedMessage::Text(message.to_owned()));
+                                //let _ = shard.client.send_message(&Evzht9h3nznqzwlMessage::text(message.to_owned()));
+                                let _ = shard.client.send_message(&SerenityWSMessage::text(message.to_owned()));
                             },
                             ValidationReq => {
                                 let guild_id_str = json["guildId"].as_str().expect("invalid json guildId - should be str");

@@ -1,10 +1,11 @@
 extern crate dotenv;
+extern crate evzht9h3nznqzwl;
 extern crate hyper;
 extern crate parking_lot;
 extern crate percent_encoding;
 #[macro_use] extern crate serde_derive;
 #[macro_use] extern crate serde_json;
-extern crate serenity;
+#[macro_use] extern crate serenity;
 extern crate typemap;
 extern crate websocket;
 

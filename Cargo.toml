@@ -13,7 +13,9 @@ percent-encoding = "1.0.0"
 typemap = "0.3.3"
 parking_lot = "0.4"
 hyper = "~0.10"
+evzht9h3nznqzwl = "0.0.1"
 
 [dependencies.serenity]
-git = "https://github.com/zeyla/serenity"
+#git = "https://github.com/zeyla/serenity"
+version = "~0.4"
 features = ["builder", "cache", "client", "framework", "gateway", "http", "model", "utils"]

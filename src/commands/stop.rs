@@ -1,10 +1,6 @@
 use keys;
 
-use serenity::client::Context;
-use serenity::framework::standard::Args;
-use serenity::model::*;
-
-pub fn stop(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
+command!(stop(ctx, msg) {
     let guild_id = match msg.guild_id() {
         Some(guild_id) => guild_id.0,
         None => {
@@ -35,6 +31,4 @@ pub fn stop(ctx: &mut Context, msg: &Message, _: Args) -> Result<(), String> {
     }
 
     let _ = msg.channel_id.say("stopped playing!");
-
-    Ok(())
-}
+});

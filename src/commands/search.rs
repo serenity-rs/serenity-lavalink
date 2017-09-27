@@ -1,11 +1,8 @@
 use keys::LavalinkConfig;
 
 use lavalink::rest;
-use serenity::client::Context;
-use serenity::framework::standard::Args;
-use serenity::model::*;
 
-pub fn search(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String> {
+command!(search(ctx, msg, args) {
     let identifier = match args.list::<String>() {
         Ok(list) => list.join(" "),
         Err(_) => {
@@ -33,6 +30,4 @@ pub fn search(ctx: &mut Context, msg: &Message, args: Args) -> Result<(), String
         .join("\n\n");
 
     let _ = msg.channel_id.say(response);
-
-    Ok(())
-}
+});
