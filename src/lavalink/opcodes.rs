@@ -3,67 +3,62 @@ use std::string::ToString;
 
 #[derive(Debug)]
 pub enum Opcode {
-    // Make the server queue a voice connection
+    // client -> server | Make the server queue a voice connection
     // guild_id: String, channel_id: String
     Connect,
 
-    // Provide an intercepted voice server update
+    // client -> server | Provide an intercepted voice server update
     // session_id: String, event: String
     VoiceUpdate,
 
-    // Close a voice connection
+    // client -> server | Close a voice connection
     // guild_id: String
     Disconnect,
 
-    // Request to check if the VC or Guild exists, and that we have access to the VC
+    // server -> client | Request to check if the VC or Guild exists, and that we have access to the VC
     ValidationReq,
 
-    // Response to ValidationRequest
+    // client -> server | Response to ValidationRequest
     // guild_id: String, channel_id: Option<String>, valid: bool
-    // IMPLEMENTATION.md: channel_id is omitted if the request does not display the channel id
-    // I think using Option<String> and not including when serializing is the best option here
     ValidationRes,
 
-    // Request to check if a shard's mainWS is connected
+    // server- > client | Request to check if a shard's mainWS is connected
     IsConnectedReq,
 
-    // Response to IsConnectedRequest
+    // client -> server | Response to IsConnectedRequest
     // shard_id: i32, connected: bool
     IsConnectedRes,
 
-    // Cause the player to play a track
-    // guild_id: String, track: String, start_time: ?
-    // IMPLEMENTATION.md has start_time as "60000" so todo check the data type it is expecting
+    // client -> server | Cause the player to play a track
+    // guild_id: String, track: String, start_time: i64
     Play,
 
-    // Cause the player to stop
+    // client -> server | Cause the player to stop
     // guild_id: String
     Stop,
 
-    // Set player pause
+    // client -> server | Set player pause
     // guild_id: String, pause: bool
     Pause,
 
-    // Make the player seek to a position of the track
+    // client -> server | Make the player seek to a position of the track
     // guild_id: String, position: i64
-    // here the position is not shown as a string in IMPLEMENTATION.md? todo check data types
     Seek,
 
-    // Set player volume
+    // client -> server | Set player volume from 1 to 150 (100 default)
     // guild_id: String, volume: i32
-    // IMPLEMENTATION.md: Volume may range from 0 to 150. 100 is default.
     Volume,
 
-    // Incoming message to forward to mainWS
+    // server -> client | Incoming message to forward to mainWS
     SendWS,
 
-    // Position information about a player
+    // server -> client | Position information about a player
     PlayerUpdate,
 
-    // A collection of stats sent every minute
+    // server -> client | A collection of stats sent every minute
     Stats,
 
-    // Server emitted an event
+    // server -> client | Server emitted an event
     Event,
 
     // Unknown opcode
