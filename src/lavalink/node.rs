@@ -1,6 +1,5 @@
 extern crate serde_json;
 
-use super::config::Config;
 use super::message;
 use super::opcodes::*;
 use super::player::*;
@@ -20,9 +19,20 @@ use websocket::{Message, OwnedMessage};
 use websocket::client::ClientBuilder;
 use websocket::header::Headers;
 
-pub type SocketAudioPlayerManager = Arc<RwLock<AudioPlayerManager>>;
-pub type SocketSender = Arc<Mutex<Sender<OwnedMessage>>>;
-pub type SocketState = Arc<RwLock<State>>;
+pub type NodeAudioPlayerManager = Arc<RwLock<AudioPlayerManager>>;
+pub type NodeSender = Arc<Mutex<Sender<OwnedMessage>>>;
+pub type NodeState = Arc<RwLock<State>>;
+
+pub type SerenityShardMap = Arc<parking_lot::Mutex<HashMap<u64, Arc<parking_lot::Mutex<Shard>>>>>;
+
+#[derive(Clone)]
+pub struct NodeConfig {
+    pub http_host: String,
+    pub websocket_host: String,
+    pub user_id: String,
+    pub password: String,
+    pub num_shards: u64,
+}
 
 pub struct State {
     pub stats: Option<RemoteStats>,
@@ -36,16 +46,16 @@ impl State {
     }
 }
 
-pub struct Socket {
-    pub ws_tx: SocketSender,
+pub struct Node {
+    pub websocket_host: String,
+    pub sender: NodeSender,
     pub send_loop: JoinHandle<()>,
     pub recv_loop: JoinHandle<()>,
-    pub state: SocketState,
-    pub player_manager: SocketAudioPlayerManager,
+    pub state: NodeState,
 }
 
-impl Socket {
-    pub fn open(config: &Config, shards: Arc<parking_lot::Mutex<HashMap<u64, Arc<parking_lot::Mutex<Shard>>>>>) -> Self {
+impl Node {
+    pub fn connect(config: &NodeConfig, shards: SerenityShardMap, player_manager: NodeAudioPlayerManager) -> Self {
         let mut headers = Headers::new();
         headers.set_raw("Authorization", vec![config.password.clone().as_bytes().to_vec()]);
         headers.set_raw("Num-Shards", vec![config.num_shards.to_string().as_bytes().to_vec()]);
@@ -97,9 +107,8 @@ impl Socket {
         }).unwrap();
 
         let recv_state = state.clone(); // clone state for the recv loop otherwise ownership passed
-
-        let player_manager = Arc::new(RwLock::new(AudioPlayerManager::new()));
-        let player_manager_cloned = player_manager.clone(); // clone for move to recv loop
+        
+        //let player_manager_cloned = player_manager.clone(); // clone for move to recv loop
 
         let builder = thread::Builder::new().name("recv loop".into());
         let recv_loop = builder.spawn(move || {
@@ -217,7 +226,7 @@ impl Socket {
                                 let time = state["time"].as_i64().expect("json state object does not contain time - should be i64");
                                 let position = state["position"].as_i64().expect("json state object does not contain position - should be i64");
                                 
-                                let player_manager = player_manager_cloned.read().expect("could not get access to player_manager mutex"); // unlock the mutex
+                                let player_manager = player_manager.read().expect("could not get access to player_manager mutex"); // unlock the mutex
 
                                 let player = match player_manager.get_player(&guild_id) {
                                     Some(player) => player, // returns already cloned Arc
@@ -242,7 +251,7 @@ impl Socket {
                                 let guild_id = guild_id_str.parse::<u64>().expect("could not parse json guild_id into u64");
                                 let track = json["track"].as_str().expect("invalid json track - should be str");
 
-                                let player_manager = player_manager_cloned.read().expect("could not get access to player_manager mutex"); // unlock the mutex
+                                let player_manager = player_manager.read().expect("could not get access to player_manager mutex"); // unlock the mutex
 
                                 let player = match player_manager.get_player(&guild_id) {
                                     Some(player) => player, // returns already cloned Arc
@@ -301,23 +310,19 @@ impl Socket {
             }
         }).unwrap();
 
-        Self {
-            ws_tx: Arc::new(Mutex::new(ws_tx)),
+        Node {
+            websocket_host: config.websocket_host.clone(),
+            sender: Arc::new(Mutex::new(ws_tx)),
             send_loop,
             recv_loop,
             state,
-            player_manager,
         }
     }
 
     pub fn send(&self, message: OwnedMessage) -> Result<(), SendError<OwnedMessage>> {
-        let ws_tx = self.ws_tx.clone();
-
-        let result = ws_tx.lock()
+        self.sender.lock()
             .expect("could not get access to ws_tx mutex")
-            .send(message);
-
-        result
+            .send(message)
     }
 
     pub fn close(self) {
@@ -327,5 +332,93 @@ impl Socket {
 
         let _ = self.send_loop.join();
         let _ = self.recv_loop.join();
+    }
+}
+
+pub struct NodeManager { 
+    pub nodes: Arc<RwLock<Vec<Arc<Node>>>>,
+    pub player_manager: NodeAudioPlayerManager,
+}
+
+impl NodeManager {
+    pub fn new() -> Self {
+        Self { 
+            nodes: Arc::new(RwLock::new(Vec::new())), 
+            player_manager: Arc::new(RwLock::new(AudioPlayerManager::new())),
+        }
+    }
+
+    pub fn add_node(&mut self, config: &NodeConfig, shards: SerenityShardMap) {
+        let node = Node::connect(config, shards, self.player_manager.clone());
+        
+        let mut nodes = self.nodes.write()
+            .expect("could not get write lock on nodes");
+
+        nodes.push(Arc::new(node));
+    }
+
+    pub fn determine_best_node(&self) -> Option<Arc<Node>> {
+        let nodes = self.nodes.read()
+            .expect("could not get read lock on nodes");
+
+        let mut record = i32::max_value();
+        let mut best = None;
+
+        for node in nodes.iter() {
+            let total = Self::get_penalty(node).unwrap_or(0);
+            
+            if total < record {
+                best = Some(node.clone());
+                record = total;
+            }
+        }
+
+        best
+    }
+
+    pub fn get_penalty(node: &Arc<Node>) -> Result<i32, String> {
+        let state = node.state.read().expect("could not get read lock on node state");
+
+        let stats = match state.stats.clone() {
+            Some(stats) => stats,
+            None => return Err("no stats are present".to_string()),
+        };
+
+        let cpu = 1.05f64.powf(100f64 * stats.system_load) * 10f64 - 10f64;
+
+        let (deficit_frame, null_frame) = match stats.frame_stats {
+            Some(frame_stats) => {
+                (
+                    1.03f64.powf(500f64 * (frame_stats.deficit as f64 / 3000f64)) * 300f64 - 300f64, 
+                    (1.03f64.powf(500f64 * (frame_stats.nulled as f64 / 3000f64)) * 300f64 - 300f64) * 2f64,
+                )
+            },
+            None => (0f64, 0f64),
+        };
+
+        Ok(stats.playing_players + cpu as i32 + deficit_frame as i32 + null_frame as i32)
+    }
+
+    pub fn close(self) {
+        let nodes = match Arc::try_unwrap(self.nodes) {
+            Ok(nodes) => nodes,
+            Err(_) => {
+                panic!("could not Arc::try_unwrap self.nodes");
+            },
+        };
+
+        let nodes = nodes.into_inner().expect("could not get rwlock inner for nodes");
+
+        for node in nodes.into_iter() {
+            let node = match Arc::try_unwrap(node) {
+                Ok(node) => node,
+                Err(_) => {
+                    println!("could not Arc::try_unwrap node");
+                    continue;
+                }
+            };
+
+            node.close();
+        }
     }
 }

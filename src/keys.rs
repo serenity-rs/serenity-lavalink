@@ -1,30 +1,18 @@
-use lavalink::config::Config;
-use lavalink::socket::{SocketAudioPlayerManager, SocketSender, SocketState};
+use std::sync::{Arc, RwLock};
+use lavalink::node::{NodeConfig, NodeManager};
 use serenity::client::CloseHandle;
 use typemap::Key;
-
-pub struct LavalinkAudioPlayerManager;
-
-impl Key for LavalinkAudioPlayerManager {
-    type Value = SocketAudioPlayerManager;
-}
 
 pub struct LavalinkConfig;
 
 impl Key for LavalinkConfig {
-    type Value = Config;
+    type Value = NodeConfig;
 }
 
-pub struct LavalinkSocketSender;
+pub struct LavalinkNodeManager;
 
-impl Key for LavalinkSocketSender {
-    type Value = SocketSender;
-}
-
-pub struct LavalinkSocketState;
-
-impl Key for LavalinkSocketState {
-    type Value = SocketState;
+impl Key for LavalinkNodeManager {
+    type Value = Arc<RwLock<NodeManager>>;
 }
 
 pub struct SerenityCloseHandle;

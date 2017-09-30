@@ -11,10 +11,18 @@ command!(current(ctx, msg) {
 
     let data = ctx.data.lock();
 
-    let player_manager = data.get::<keys::LavalinkAudioPlayerManager>()
-        .expect("keys::LavalinkAudioPlayerManager is not present in Context::data").clone();
+    //let player_manager = data.get::<keys::LavalinkAudioPlayerManager>()
+    //    .expect("keys::LavalinkAudioPlayerManager is not present in Context::data").clone();
 
-    let player_manager = player_manager.read().unwrap();
+    //let player_manager = player_manager.read().unwrap();
+
+    let node_manager = data.get::<keys::LavalinkNodeManager>()
+        .expect("could not get key::LavalinkNodeManager from Context::data")
+        .read()
+        .expect("could not get read lock on node_manager");
+
+    let player_manager = node_manager.player_manager.read()
+        .expect("could not get write lock on player manager");
 
     if !player_manager.has_player(&guild_id.0) {
         let _ = msg.channel_id.say("this channel does not have an audio player");

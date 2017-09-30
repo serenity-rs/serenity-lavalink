@@ -13,25 +13,30 @@ command!(ping(ctx, msg) {
     };
 });
 
-fn get_socket_stats(ctx: &mut Context) -> Result<RemoteStats, &'static str> {
+fn get_socket_stats(ctx: &mut Context) -> Result<Vec<RemoteStats>, &'static str> {
     // note when more stats functions are added this should be passed between them
     // instead of obtaining a data lock for each function
     let data = ctx.data.lock();
 
-    let socket_state = match data.get::<keys::LavalinkSocketState>() {
-        Some(socket_state) => socket_state,
-        None => return Err("keys::LavalinkSocketState is not present in Context::data"),
-    };
-    
-    let socket_state = socket_state.read()
-        .expect("could not get read lock on socket state");
+    let node_manager = data.get::<keys::LavalinkNodeManager>()
+        .expect("could not get key::LavalinkNodeManager from Context::data")
+        .read()
+        .expect("could not get read lock on node_manager");
 
-    match socket_state.stats.clone() {
-        Some(stats) => Ok(stats),
-        None => {
-            Err("no socket stats are available yet")
-        },
+    let stats_vec = Vec::new();
+
+    for node in node_manager.nodes.read().expect("could not get read lock on nodes").iter() {
+        let socket_state = node.state.read().expect("could not get read lock on socket state");
+        
+        match socket_state.stats.clone() {
+            Some(stats) => stats_vec.push(stats),
+            None => {
+                return Err("no socket stats are available yet");
+            },
+        }
     }
+
+    Ok(stats_vec)
 }
 
 command!(stats(ctx, msg) {

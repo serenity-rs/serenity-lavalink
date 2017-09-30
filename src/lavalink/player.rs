@@ -1,5 +1,5 @@
 use super::message;
-use super::socket::SocketSender;
+use super::node::NodeSender;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -70,7 +70,7 @@ impl AudioPlayerListener {
 // todo potentially split state into child struct to avoid mutable reference of AudioPlayer
 // where mutablity should not be nessesary for non state fields
 pub struct AudioPlayer {
-    pub sender: SocketSender,
+    pub sender: NodeSender,
     pub guild_id: u64,
     pub track: Option<String>,
     pub time: i64,
@@ -81,7 +81,7 @@ pub struct AudioPlayer {
 }
 
 impl AudioPlayer {
-    fn new(sender: SocketSender, guild_id: u64) -> Self {
+    fn new(sender: NodeSender, guild_id: u64) -> Self {
         Self {
             sender,
             guild_id,
@@ -208,7 +208,7 @@ pub struct AudioPlayerManager {
 
 impl AudioPlayerManager {
     // utility assosiated function for creating AudioPlayer instances wrapped in Arc & Mutex
-    fn new_player(sender: SocketSender, guild_id: u64) -> Arc<Mutex<AudioPlayer>> {
+    fn new_player(sender: NodeSender, guild_id: u64) -> Arc<Mutex<AudioPlayer>> {
         Arc::new(Mutex::new(AudioPlayer::new(sender, guild_id)))
     }
     
@@ -231,7 +231,7 @@ impl AudioPlayerManager {
         Some(player.clone()) // clone the arc
     }
 
-    pub fn create_player(&mut self, sender: SocketSender, guild_id: u64) -> Result<Arc<Mutex<AudioPlayer>>, String> {
+    pub fn create_player(&mut self, sender: NodeSender, guild_id: u64) -> Result<Arc<Mutex<AudioPlayer>>, String> {
         // we dont use #has_key yet because it would get its own players clone & mutex lock
         if self.players.contains_key(&guild_id) {
             return Err(format!("player already exists under the guild id {}", &guild_id));

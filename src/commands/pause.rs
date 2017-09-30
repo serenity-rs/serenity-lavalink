@@ -15,11 +15,19 @@ fn toggle_paused(ctx: &mut Context, msg: &Message, pause: bool) {
     {
         let data = ctx.data.lock();
 
-        let player_manager = data.get::<keys::LavalinkAudioPlayerManager>()
-            .expect("keys::LavalinkAudioPlayerManager not present in Context::data");
+        //let player_manager = data.get::<keys::LavalinkAudioPlayerManager>()
+        //    .expect("keys::LavalinkAudioPlayerManager not present in Context::data");
 
-        let player_manager = player_manager.read()
-            .expect("could not obtain lock on player manager");
+        //let player_manager = player_manager.read()
+        //    .expect("could not obtain lock on player manager");
+
+        let node_manager = data.get::<keys::LavalinkNodeManager>()
+            .expect("could not get key::LavalinkNodeManager from Context::data")
+            .read()
+            .expect("could not get read lock on node_manager");
+
+        let player_manager = node_manager.player_manager.read()
+            .expect("could not get write lock on player manager");
 
         let player = match player_manager.get_player(&guild_id) {
             Some(player) => player,

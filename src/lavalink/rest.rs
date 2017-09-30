@@ -1,6 +1,6 @@
 extern crate serde_json; // idk why this is required for serde_json's functions
 
-use super::config::Config;
+use super::node::NodeConfig;
 
 use std::io::Read;
 
@@ -17,7 +17,7 @@ pub struct HttpClient {
 }
 
 impl HttpClient {
-    pub fn new(config: &Config) -> Self {
+    pub fn new(config: &NodeConfig) -> Self {
         let client = Client::new();
 
         Self {

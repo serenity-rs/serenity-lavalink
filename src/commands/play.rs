@@ -21,19 +21,30 @@ command!(play(ctx, msg, args) {
     
     let data = ctx.data.lock();
 
-    let player_manager = data.get::<keys::LavalinkAudioPlayerManager>().expect("could not get keys::LavalinkAudioPlayerManager from Context::data");
-    let player_manager = player_manager.write().expect("could not get lock on player manager");
+    //let player_manager = data.get::<keys::LavalinkAudioPlayerManager>().expect("could not get keys::LavalinkAudioPlayerManager from Context::data");
+    //let player_manager = player_manager.write().expect("could not get lock on player manager");
+
+    let node_manager = data.get::<keys::LavalinkNodeManager>()
+        .expect("could not get key::LavalinkNodeManager from Context::data")
+        .read()
+        .expect("could not get read lock on node_manager");
+
+    let mut player_manager = node_manager.player_manager.write()
+        .expect("could not get write lock on player manager");
 
     let player = if player_manager.has_player(&guild_id.0) {
         player_manager.get_player(&guild_id.0)
             .expect("audio player should be present for guild")
     } else {
-        let mut player_manager = player_manager;
+        let node = match node_manager.determine_best_node() {
+            Some(node) => node,
+            None => {
+                let _ = msg.channel_id.say("oh no! no audio processing nodes available \\:S");
+                return Ok(());
+            }
+        };
 
-        let ws_tx = data.get::<keys::LavalinkSocketSender>()
-            .expect("could not get key::LavalinkSocketSender from Context::data");
-
-        let player = match player_manager.create_player(ws_tx.clone(), guild_id.0) {
+        let player = match player_manager.create_player(node.sender.clone(), guild_id.0) {
             Ok(player) => player,
             Err(e) => {
                 println!("error creating player {:?}", e);
