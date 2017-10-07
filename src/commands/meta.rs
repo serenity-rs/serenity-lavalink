@@ -23,7 +23,7 @@ fn get_socket_stats(ctx: &mut Context) -> Result<Vec<RemoteStats>, &'static str>
         .read()
         .expect("could not get read lock on node_manager");
 
-    let stats_vec = Vec::new();
+    let mut stats_vec = Vec::new();
 
     for node in node_manager.nodes.read().expect("could not get read lock on nodes").iter() {
         let socket_state = node.state.read().expect("could not get read lock on socket state");

@@ -16,6 +16,6 @@ hyper = "~0.10"
 evzht9h3nznqzwl = "0.0.1"
 
 [dependencies.serenity]
-#git = "https://github.com/zeyla/serenity"
-version = "~0.4"
+git = "https://github.com/zeyla/serenity"
+branch = "v0.4.1"
 features = ["builder", "cache", "client", "framework", "gateway", "http", "model", "utils"]
