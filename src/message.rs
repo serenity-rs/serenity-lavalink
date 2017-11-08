@@ -1,7 +1,7 @@
 use super::opcodes::Opcode::*;
 
-use serde_json::Value;
 use websocket::OwnedMessage;
+use ::prelude::*;
 
 #[inline]
 fn from_json(json: &Value) -> OwnedMessage {

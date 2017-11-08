@@ -14,3 +14,5 @@ pub mod opcodes;
 pub mod player;
 pub mod rest;
 pub mod stats;
+
+mod prelude;

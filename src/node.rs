@@ -4,7 +4,7 @@ use super::player::*;
 use super::stats::*;
 
 use parking_lot;
-use serde_json::{self, Value};
+use serde_json;
 use serenity::gateway::Shard;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -14,6 +14,7 @@ use std::thread::{self, JoinHandle};
 use websocket::client::ClientBuilder;
 use websocket::header::Headers;
 use websocket::{Message, OwnedMessage};
+use ::prelude::*;
 
 pub type NodeAudioPlayerManager = Arc<RwLock<AudioPlayerManager>>;
 pub type NodeSender = Arc<Mutex<Sender<OwnedMessage>>>;
