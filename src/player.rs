@@ -121,7 +121,7 @@ impl AudioPlayer {
 
     #[inline]
     fn send(&self, message: OwnedMessage) -> Result<()> {
-        self.sender.lock().unwrap().send(message).map_err(From::from)
+        self.sender.lock().send(message).map_err(From::from)
     }
 
     pub fn play(&mut self, track: &str) {

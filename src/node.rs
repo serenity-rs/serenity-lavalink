@@ -3,12 +3,12 @@ use super::opcodes::*;
 use super::player::*;
 use super::stats::*;
 
-use parking_lot;
+use parking_lot::{self, Mutex, RwLock};
 use serde_json;
 use serenity::gateway::Shard;
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::Arc;
 use std::sync::mpsc::{channel, Sender};
 use std::thread::{self, JoinHandle};
 use websocket::client::ClientBuilder;
@@ -217,7 +217,7 @@ impl Node {
                                 let time = state["time"].as_i64().expect("json state object does not contain time - should be i64");
                                 let position = state["position"].as_i64().expect("json state object does not contain position - should be i64");
 
-                                let player_manager = player_manager.read().expect("could not get access to player_manager mutex"); // unlock the mutex
+                                let player_manager = player_manager.read(); // unlock the mutex
 
                                 let player = match player_manager.get_player(&guild_id) {
                                     Some(player) => player, // returns already cloned Arc
@@ -234,7 +234,7 @@ impl Node {
                             Stats => {
                                 let stats = RemoteStats::from_json(&json);
 
-                                let mut state = recv_state.write().expect("could not get write lock on recv state");
+                                let mut state = recv_state.write();
                                 state.stats = Some(stats);
                             },
                             Event => {
@@ -242,7 +242,7 @@ impl Node {
                                 let guild_id = guild_id_str.parse::<u64>().expect("could not parse json guild_id into u64");
                                 let track = json["track"].as_str().expect("invalid json track - should be str");
 
-                                let player_manager = player_manager.read().expect("could not get access to player_manager mutex"); // unlock the mutex
+                                let player_manager = player_manager.read(); // unlock the mutex
 
                                 let player = match player_manager.get_player(&guild_id) {
                                     Some(player) => player, // returns already cloned Arc
@@ -311,10 +311,7 @@ impl Node {
     }
 
     pub fn send(&self, message: OwnedMessage) -> Result<()> {
-        self.sender.lock()
-            .expect("could not get access to ws_tx mutex")
-            .send(message)
-            .map_err(From::from)
+        self.sender.lock().send(message).map_err(From::from)
     }
 
     pub fn close(self) {
@@ -341,15 +338,13 @@ impl NodeManager {
     pub fn add_node(&mut self, config: &NodeConfig, shards: SerenityShardMap) {
         let node = Node::connect(config, shards, Arc::clone(&self.player_manager));
 
-        let mut nodes = self.nodes.write()
-            .expect("could not get write lock on nodes");
+        let mut nodes = self.nodes.write();
 
         nodes.push(Arc::new(node));
     }
 
     pub fn determine_best_node(&self) -> Option<Arc<Node>> {
-        let nodes = self.nodes.read()
-            .expect("could not get read lock on nodes");
+        let nodes = self.nodes.read();
 
         let mut record = i32::max_value();
         let mut best = None;
@@ -367,7 +362,7 @@ impl NodeManager {
     }
 
     pub fn get_penalty(node: &Arc<Node>) -> Result<i32> {
-        let state = node.state.read().expect("could not get read lock on node state");
+        let state = node.state.read();
 
         let stats = match state.stats.clone() {
             Some(stats) => stats,
@@ -396,7 +391,7 @@ impl NodeManager {
             panic!("could not Arc::try_unwrap self.nodes");
         };
 
-        let nodes = nodes.into_inner().expect("could not get rwlock inner for nodes");
+        let nodes = nodes.into_inner();
 
         for node in nodes {
             let node = match Arc::try_unwrap(node) {
