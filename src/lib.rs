@@ -1,7 +1,5 @@
-extern crate dotenv;
 extern crate evzht9h3nznqzwl;
 extern crate percent_encoding;
-extern crate typemap;
 extern crate parking_lot;
 extern crate hyper;
 extern crate serde;

@@ -4,13 +4,11 @@ version = "0.1.0"
 authors = ["sponges <spongybacon@hotmail.co.uk>", "Zeyla Hellyer <zey@zey.moe>"]
 
 [dependencies]
-dotenv = "0.10.1"
 websocket = "0.20.2"
 serde = "1.0.11"
 serde_json = "1.0.2"
 serde_derive = "1.0.11"
 percent-encoding = "1.0.0"
-typemap = "0.3.3"
 parking_lot = "0.4"
 hyper = "~0.10"
 evzht9h3nznqzwl = "0.0.2"
