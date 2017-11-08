@@ -9,7 +9,7 @@ use serenity::gateway::Shard;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex, RwLock};
-use std::sync::mpsc::{channel, Sender, SendError};
+use std::sync::mpsc::{channel, Sender};
 use std::thread::{self, JoinHandle};
 use websocket::client::ClientBuilder;
 use websocket::header::Headers;
@@ -310,10 +310,11 @@ impl Node {
         }
     }
 
-    pub fn send(&self, message: OwnedMessage) -> Result<(), SendError<OwnedMessage>> {
+    pub fn send(&self, message: OwnedMessage) -> Result<()> {
         self.sender.lock()
             .expect("could not get access to ws_tx mutex")
             .send(message)
+            .map_err(From::from)
     }
 
     pub fn close(self) {
@@ -367,12 +368,12 @@ impl NodeManager {
         best
     }
 
-    pub fn get_penalty(node: &Arc<Node>) -> Result<i32, String> {
+    pub fn get_penalty(node: &Arc<Node>) -> Result<i32> {
         let state = node.state.read().expect("could not get read lock on node state");
 
         let stats = match state.stats.clone() {
             Some(stats) => stats,
-            None => return Err("no stats are present".to_string()),
+            None => return Err(Error::StatsNotPresent),
         };
 
         let cpu = 1.05f64.powf(100f64 * stats.system_load) * 10f64 - 10f64;

@@ -15,4 +15,7 @@ pub mod player;
 pub mod rest;
 pub mod stats;
 
+mod error;
 mod prelude;
+
+pub use error::{Error, Result};

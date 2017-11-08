@@ -1,11 +1,11 @@
 use hyper::client::{Body, Client, RequestBuilder};
 use hyper::header::{ContentType, Headers};
 use hyper::method::Method;
-use hyper::Error as HyperError;
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 use serde_json;
 use std::io::Read;
 use super::node::NodeConfig;
+use ::prelude::*;
 
 pub struct HttpClient {
     client: Client,
@@ -40,7 +40,7 @@ impl HttpClient {
         builder.headers(headers)
     }
 
-    fn run_request(&self, request: RequestBuilder) -> Result<Vec<u8>, HyperError> {
+    fn run_request(&self, request: RequestBuilder) -> Result<Vec<u8>> {
         match request.send() {
             Ok(response) => {
                 Ok(response.bytes().fold(Vec::new(), |mut v: Vec<u8>, chunk| {
@@ -55,11 +55,11 @@ impl HttpClient {
                     v // return the vec as the final result
                 }))
             },
-            Err(e) => Err(e),
+            Err(e) => Err(From::from(e)),
         }
     }
 
-    pub fn load_tracks(&self, identifier: &str) -> Result<Vec<LoadedTrack>, HyperError> {
+    pub fn load_tracks(&self, identifier: &str) -> Result<Vec<LoadedTrack>> {
         // url encoding the identifier
         let identifier = utf8_percent_encode(identifier, DEFAULT_ENCODE_SET);
 
@@ -77,7 +77,7 @@ impl HttpClient {
     }
 
     #[allow(unused)]
-    pub fn decode_track(&self, track: &str) -> Result<LoadedTrack, HyperError> {
+    pub fn decode_track(&self, track: &str) -> Result<LoadedTrack> {
         let uri = format!("/decodetrack?track={}", track);
         let request = self.create_request(Method::Get, uri.as_ref(), None);
 
@@ -95,7 +95,7 @@ impl HttpClient {
     }
 
     #[allow(unused)]
-    pub fn decode_tracks(&self, tracks: Vec<String>) -> Result<Vec<LoadedTrack>, HyperError> {
+    pub fn decode_tracks(&self, tracks: Vec<String>) -> Result<Vec<LoadedTrack>> {
         let tracks = serde_json::to_vec(&tracks).unwrap();
         let body = (tracks.as_ref(), ContentType::json());
 

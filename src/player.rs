@@ -2,9 +2,9 @@ use super::message;
 use super::node::NodeSender;
 
 use std::collections::HashMap;
-use std::sync::mpsc::SendError;
 use std::sync::{Arc, Mutex};
 use websocket::OwnedMessage;
+use ::prelude::*;
 
 type PlayerPauseHandler = fn(&AudioPlayer);
 type PlayerResumeHandler = fn(&AudioPlayer);
@@ -104,8 +104,8 @@ impl AudioPlayer {
     }
 
     #[inline]
-    fn send(&self, message: OwnedMessage) -> Result<(), SendError<OwnedMessage>> {
-        self.sender.lock().unwrap().send(message)
+    fn send(&self, message: OwnedMessage) -> Result<()> {
+        self.sender.lock().unwrap().send(message).map_err(From::from)
     }
 
     pub fn play(&mut self, track: &str) {
@@ -234,10 +234,10 @@ impl AudioPlayerManager {
         Some(Arc::clone(player)) // clone the arc
     }
 
-    pub fn create_player(&mut self, sender: NodeSender, guild_id: u64) -> Result<Arc<Mutex<AudioPlayer>>, String> {
+    pub fn create_player(&mut self, sender: NodeSender, guild_id: u64) -> Result<Arc<Mutex<AudioPlayer>>> {
         // we dont use #has_key yet because it would get its own players clone & mutex lock
         if self.players.contains_key(&guild_id) {
-            return Err(format!("player already exists under the guild id {}", &guild_id));
+            return Err(Error::PlayerAlreadyExists);
         }
 
         let _ = self.players.insert(guild_id, AudioPlayerManager::new_player(sender, guild_id));
