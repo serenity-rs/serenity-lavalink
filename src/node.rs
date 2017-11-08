@@ -10,7 +10,7 @@ use std::str::FromStr;
 use std::sync::{Arc, Mutex, RwLock};
 use std::sync::mpsc::{channel, Sender, SendError};
 use std::thread::{self, JoinHandle};
-use evzht9h3nznqzwl::OwnedMessage as SerenityOwnedMessage;
+use websocket::OwnedMessage as SerenityOwnedMessage;
 use parking_lot;
 use serde_json::Value;
 use serenity::gateway::Shard;
