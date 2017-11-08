@@ -2,9 +2,8 @@ use super::message;
 use super::node::NodeSender;
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc::SendError;
-
+use std::sync::{Arc, Mutex};
 use websocket::OwnedMessage;
 
 type PlayerPauseHandler = fn(&AudioPlayer);

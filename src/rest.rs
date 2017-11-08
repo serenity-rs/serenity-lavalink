@@ -1,14 +1,11 @@
-extern crate serde_json; // idk why this is required for serde_json's functions
-
-use super::node::NodeConfig;
-
-use std::io::Read;
-
-use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
-use hyper::Error as HyperError;
-use hyper::client::{Client, RequestBuilder, Body};
-use hyper::header::{Headers, ContentType};
+use hyper::client::{Body, Client, RequestBuilder};
+use hyper::header::{ContentType, Headers};
 use hyper::method::Method;
+use hyper::Error as HyperError;
+use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
+use serde_json;
+use std::io::Read;
+use super::node::NodeConfig;
 
 pub struct HttpClient {
     client: Client,

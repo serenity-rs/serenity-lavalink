@@ -1,22 +1,19 @@
-extern crate serde_json;
-
 use super::message;
 use super::opcodes::*;
 use super::player::*;
 use super::stats::*;
 
+use parking_lot;
+use serde_json::{self, Value};
+use serenity::gateway::Shard;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex, RwLock};
 use std::sync::mpsc::{channel, Sender, SendError};
 use std::thread::{self, JoinHandle};
-use websocket::OwnedMessage as SerenityOwnedMessage;
-use parking_lot;
-use serde_json::Value;
-use serenity::gateway::Shard;
-use websocket::{Message, OwnedMessage};
 use websocket::client::ClientBuilder;
 use websocket::header::Headers;
+use websocket::{Message, OwnedMessage};
 
 pub type NodeAudioPlayerManager = Arc<RwLock<AudioPlayerManager>>;
 pub type NodeSender = Arc<Mutex<Sender<OwnedMessage>>>;
@@ -165,7 +162,7 @@ impl Node {
                                 let shard = &mut *shards.get(&shard_id).unwrap().lock();
 
                                 //let _ = shard.client.send_message(&Evzht9h3nznqzwlMessage::text(message.to_owned()));
-                                let _ = shard.client.send_message(&SerenityOwnedMessage::Text(message.to_owned()));
+                                let _ = shard.client.send_message(&OwnedMessage::Text(message.to_owned()));
                             },
                             ValidationReq => {
                                 let guild_id_str = json["guildId"].as_str().expect("invalid json guildId - should be str");
