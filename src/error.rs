@@ -25,7 +25,7 @@ impl StdError for Error {
         match *self {
             Error::Hyper(ref inner) => inner.description(),
             Error::PlayerAlreadyExists => "Player already exists for the guild",
-            Error::Send(ref inner) => &inner,
+            Error::Send(ref inner) => inner,
             Error::StatsNotPresent => "No stats are present",
         }
     }
