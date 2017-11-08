@@ -35,17 +35,12 @@ impl HttpClient {
         // cant use hyper::header::Authorization because it requires prefix of Basic or Bearer
         headers.set_raw("Authorization", vec![self.password.as_bytes().to_vec()]);
 
-        match body {
-            Some((body, content_type)) => {
-                builder = builder.body(Body::BufBody(body, body.len()));
-                headers.set(content_type);
-            },
-            None => {},
+        if let Some((body, content_type)) = body {
+            builder = builder.body(Body::BufBody(body, body.len()));
+            headers.set(content_type);
         }
 
-        let builder = builder.headers(headers);
-
-        builder
+        builder.headers(headers)
     }
 
     fn run_request(&self, request: RequestBuilder) -> Result<Vec<u8>, HyperError> {
@@ -75,7 +70,7 @@ impl HttpClient {
         let request = self.create_request(Method::Get, uri.as_ref(), None);
 
         let response = match self.run_request(request) {
-            Ok(response) => response, 
+            Ok(response) => response,
             Err(e) => return Err(e),
         };
 

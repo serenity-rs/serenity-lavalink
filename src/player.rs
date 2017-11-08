@@ -25,15 +25,7 @@ pub struct AudioPlayerListener {
 
 impl AudioPlayerListener {
     pub fn new() -> Self {
-        Self {
-            // disgusting..
-            on_player_pause: |_| {},
-            on_player_resume: |_| {},
-            on_track_start: |_, _| {},
-            on_track_end: |_, _, _| {},
-            on_track_exception: |_, _, _| {},
-            on_track_stuck: |_, _, _| {},
-        }
+        Self::default()
     }
 
     pub fn with_player_pause(mut self, handler: PlayerPauseHandler) -> Self {
@@ -64,6 +56,19 @@ impl AudioPlayerListener {
     pub fn with_track_stuck(mut self, handler: TrackStuckHandler) -> Self {
         self.on_track_stuck = handler;
         self
+    }
+}
+
+impl Default for AudioPlayerListener {
+    fn default() -> Self {
+        Self {
+            on_player_pause: |_| {},
+            on_player_resume: |_| {},
+            on_track_start: |_, _| {},
+            on_track_end: |_, _, _| {},
+            on_track_exception: |_, _, _| {},
+            on_track_stuck: |_, _, _| {},
+        }
     }
 }
 
@@ -106,14 +111,14 @@ impl AudioPlayer {
 
     pub fn play(&mut self, track: &str) {
         let result = self.send(message::play(
-            &self.guild_id.to_string(), 
+            &self.guild_id.to_string(),
             track
         ));
-        
+
         match result {
             Ok(_) => {
                 self.track = Some(track.to_string());
-                
+
                 for listener in &self.listeners {
                     let on_track_start = &listener.on_track_start;
                     on_track_start(self, track);
@@ -129,10 +134,10 @@ impl AudioPlayer {
         let result = self.send(message::stop(
             &self.guild_id.to_string()
         ));
-        
+
         match result {
             Ok(_) => {
-                let track = self.track.clone().unwrap_or("no track in state".to_string());
+                let track = self.track.clone().unwrap_or_else(|| "no track in state".to_string());
                 self.track = None;
 
                 for listener in &self.listeners {
@@ -150,14 +155,14 @@ impl AudioPlayer {
 
     pub fn pause(&mut self, pause: bool) {
         let result = self.send(message::pause(
-            &self.guild_id.to_string(), 
+            &self.guild_id.to_string(),
             pause
         ));
-        
+
         match result {
             Ok(_) => {
                 self.paused = pause;
-                
+
                 for listener in &self.listeners {
                     let handler = if pause {
                         &listener.on_player_pause
@@ -183,10 +188,10 @@ impl AudioPlayer {
 
     pub fn volume(&mut self, volume: i32) {
         let result = self.send(message::volume(
-            &self.guild_id.to_string(), 
+            &self.guild_id.to_string(),
             volume
         ));
-        
+
         match result {
             Ok(_) => {
                 self.volume = volume;
@@ -202,6 +207,7 @@ impl AudioPlayer {
 
 type AudioPlayerMap = HashMap<u64, Arc<Mutex<AudioPlayer>>>;
 
+#[derive(Default)]
 pub struct AudioPlayerManager {
     players: AudioPlayerMap,
 }
@@ -211,15 +217,13 @@ impl AudioPlayerManager {
     fn new_player(sender: NodeSender, guild_id: u64) -> Arc<Mutex<AudioPlayer>> {
         Arc::new(Mutex::new(AudioPlayer::new(sender, guild_id)))
     }
-    
+
     pub fn new() -> Self {
-        Self {
-            players: HashMap::new(),
-        }
+        Self::default()
     }
 
     pub fn has_player(&self, guild_id: &u64) -> bool {
-        self.players.contains_key(&guild_id)
+        self.players.contains_key(guild_id)
     }
 
     pub fn get_player(&self, guild_id: &u64) -> Option<Arc<Mutex<AudioPlayer>>> {
@@ -228,7 +232,7 @@ impl AudioPlayerManager {
             None => return None,
         };
 
-        Some(player.clone()) // clone the arc
+        Some(Arc::clone(player)) // clone the arc
     }
 
     pub fn create_player(&mut self, sender: NodeSender, guild_id: u64) -> Result<Arc<Mutex<AudioPlayer>>, String> {
@@ -237,9 +241,9 @@ impl AudioPlayerManager {
             return Err(format!("player already exists under the guild id {}", &guild_id));
         }
 
-        let _ = self.players.insert(guild_id.clone(), AudioPlayerManager::new_player(sender, guild_id.clone()));
-        
-        let player = self.players.get(&guild_id).unwrap(); // unwrap because we can assert it exists after insertion
-        Ok(player.clone())
+        let _ = self.players.insert(guild_id, AudioPlayerManager::new_player(sender, guild_id));
+
+        let player = &self.players[&guild_id]; // unwrap because we can assert it exists after insertion
+        Ok(Arc::clone(player))
     }
 }

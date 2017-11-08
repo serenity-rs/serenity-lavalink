@@ -86,26 +86,20 @@ impl Node {
                 };
 
                 // handle close message, exit loop
-                match message {
-                    OwnedMessage::Close(_) => {
-                        let _ = sender.send_message(&message);
-                        return;
-                    },
-                    _ => (),
+                if let OwnedMessage::Close(_) = message {
+                    let _ = sender.send_message(&message);
+                    return;
                 }
 
-                match sender.send_message(&message) {
-                    Ok(_) => (),
-                    Err(e) => {
-                        println!("Send loop: {:?}", e);
-                        let _ = sender.send_message(&Message::close());
-                        return;
-                    },
+                if let Err(e) = sender.send_message(&message) {
+                    println!("Send loop: {:?}", e);
+                    let _ = sender.send_message(&Message::close());
+                    return;
                 }
             }
         }).unwrap();
 
-        let recv_state = state.clone(); // clone state for the recv loop otherwise ownership passed
+        let recv_state = Arc::clone(&state); // clone state for the recv loop otherwise ownership passed
 
         //let player_manager_cloned = player_manager.clone(); // clone for move to recv loop
 
@@ -348,7 +342,7 @@ impl NodeManager {
     }
 
     pub fn add_node(&mut self, config: &NodeConfig, shards: SerenityShardMap) {
-        let node = Node::connect(config, shards, self.player_manager.clone());
+        let node = Node::connect(config, shards, Arc::clone(&self.player_manager));
 
         let mut nodes = self.nodes.write()
             .expect("could not get write lock on nodes");
@@ -367,7 +361,7 @@ impl NodeManager {
             let total = Self::get_penalty(node).unwrap_or(0);
 
             if total < record {
-                best = Some(node.clone());
+                best = Some(Arc::clone(node));
                 record = total;
             }
         }
@@ -388,8 +382,8 @@ impl NodeManager {
         let (deficit_frame, null_frame) = match stats.frame_stats {
             Some(frame_stats) => {
                 (
-                    1.03f64.powf(500f64 * (frame_stats.deficit as f64 / 3000f64)) * 300f64 - 300f64,
-                    (1.03f64.powf(500f64 * (frame_stats.nulled as f64 / 3000f64)) * 300f64 - 300f64) * 2f64,
+                    1.03f64.powf(500f64 * (f64::from(frame_stats.deficit) / 3000f64)) * 300f64 - 300f64,
+                    (1.03f64.powf(500f64 * (f64::from(frame_stats.nulled) / 3000f64)) * 300f64 - 300f64) * 2f64,
                 )
             },
             None => (0f64, 0f64),
@@ -399,16 +393,15 @@ impl NodeManager {
     }
 
     pub fn close(self) {
-        let nodes = match Arc::try_unwrap(self.nodes) {
-            Ok(nodes) => nodes,
-            Err(_) => {
-                panic!("could not Arc::try_unwrap self.nodes");
-            },
+        let nodes = if let Ok(nodes) = Arc::try_unwrap(self.nodes) {
+            nodes
+        } else {
+            panic!("could not Arc::try_unwrap self.nodes");
         };
 
         let nodes = nodes.into_inner().expect("could not get rwlock inner for nodes");
 
-        for node in nodes.into_iter() {
+        for node in nodes {
             let node = match Arc::try_unwrap(node) {
                 Ok(node) => node,
                 Err(_) => {
@@ -419,5 +412,11 @@ impl NodeManager {
 
             node.close();
         }
+    }
+}
+
+impl Default for NodeManager {
+    fn default() -> Self {
+        Self::new()
     }
 }
