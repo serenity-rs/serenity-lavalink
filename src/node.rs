@@ -10,8 +10,7 @@ use std::str::FromStr;
 use std::sync::{Arc, Mutex, RwLock};
 use std::sync::mpsc::{channel, Sender, SendError};
 use std::thread::{self, JoinHandle};
-
-use evzht9h3nznqzwl::Message as SerenityWSMessage;
+use evzht9h3nznqzwl::OwnedMessage as SerenityOwnedMessage;
 use parking_lot;
 use serde_json::Value;
 use serenity::gateway::Shard;
@@ -40,7 +39,7 @@ pub struct State {
 
 impl State {
     fn new() -> Self {
-        Self { 
+        Self {
             stats: None,
         }
     }
@@ -107,7 +106,7 @@ impl Node {
         }).unwrap();
 
         let recv_state = state.clone(); // clone state for the recv loop otherwise ownership passed
-        
+
         //let player_manager_cloned = player_manager.clone(); // clone for move to recv loop
 
         let builder = thread::Builder::new().name("recv loop".into());
@@ -172,7 +171,7 @@ impl Node {
                                 let shard = &mut *shards.get(&shard_id).unwrap().lock();
 
                                 //let _ = shard.client.send_message(&Evzht9h3nznqzwlMessage::text(message.to_owned()));
-                                let _ = shard.client.send_message(&SerenityWSMessage::text(message.to_owned()));
+                                let _ = shard.client.send_message(&SerenityOwnedMessage::Text(message.to_owned()));
                             },
                             ValidationReq => {
                                 let guild_id_str = json["guildId"].as_str().expect("invalid json guildId - should be str");
@@ -205,8 +204,8 @@ impl Node {
                                 let valid = true; // todo remove
 
                                 let _ = ws_tx_1.send(message::validation_response(
-                                    guild_id_str, 
-                                    channel_id_str, 
+                                    guild_id_str,
+                                    channel_id_str,
                                     valid
                                 ));
                             },
@@ -215,7 +214,7 @@ impl Node {
                                 let shards = &*shards.lock();
 
                                 let _ = ws_tx_1.send(message::is_connected_response(
-                                    shard_id, 
+                                    shard_id,
                                     shards.contains_key(&shard_id)
                                 ));
                             },
@@ -225,7 +224,7 @@ impl Node {
                                 let state = json["state"].as_object().expect("json does not contain state object");
                                 let time = state["time"].as_i64().expect("json state object does not contain time - should be i64");
                                 let position = state["position"].as_i64().expect("json state object does not contain position - should be i64");
-                                
+
                                 let player_manager = player_manager.read().expect("could not get access to player_manager mutex"); // unlock the mutex
 
                                 let player = match player_manager.get_player(&guild_id) {
@@ -266,7 +265,7 @@ impl Node {
                                 match json["type"].as_str().unwrap() {
                                     "TrackEndEvent" => {
                                         let reason = json["reason"].as_str().expect("invalid json reason - should be str");
-                                        
+
                                         player.track = None; // set track to None so nothing is playing
                                         player.time = 0; // reset the time
                                         player.position = 0; // reset the position
@@ -278,7 +277,7 @@ impl Node {
                                     },
                                     "TrackExceptionEvent" => {
                                         let error = json["error"].as_str().expect("invalid json error - should be str");
-                                    
+
                                         // todo determine if should keep playing
 
                                         for listener in &player.listeners {
@@ -288,7 +287,7 @@ impl Node {
                                     },
                                     "TrackStuckEvent" => {
                                         let threshold_ms = json["thresholdMs"].as_i64().expect("invalid json thresholdMs - should be i64");
-                                    
+
                                         for listener in &player.listeners {
                                             let on_track_stuck = &listener.on_track_stuck;
                                             on_track_stuck(&player, track, threshold_ms);
@@ -335,22 +334,22 @@ impl Node {
     }
 }
 
-pub struct NodeManager { 
+pub struct NodeManager {
     pub nodes: Arc<RwLock<Vec<Arc<Node>>>>,
     pub player_manager: NodeAudioPlayerManager,
 }
 
 impl NodeManager {
     pub fn new() -> Self {
-        Self { 
-            nodes: Arc::new(RwLock::new(Vec::new())), 
+        Self {
+            nodes: Arc::new(RwLock::new(Vec::new())),
             player_manager: Arc::new(RwLock::new(AudioPlayerManager::new())),
         }
     }
 
     pub fn add_node(&mut self, config: &NodeConfig, shards: SerenityShardMap) {
         let node = Node::connect(config, shards, self.player_manager.clone());
-        
+
         let mut nodes = self.nodes.write()
             .expect("could not get write lock on nodes");
 
@@ -366,7 +365,7 @@ impl NodeManager {
 
         for node in nodes.iter() {
             let total = Self::get_penalty(node).unwrap_or(0);
-            
+
             if total < record {
                 best = Some(node.clone());
                 record = total;
@@ -389,7 +388,7 @@ impl NodeManager {
         let (deficit_frame, null_frame) = match stats.frame_stats {
             Some(frame_stats) => {
                 (
-                    1.03f64.powf(500f64 * (frame_stats.deficit as f64 / 3000f64)) * 300f64 - 300f64, 
+                    1.03f64.powf(500f64 * (frame_stats.deficit as f64 / 3000f64)) * 300f64 - 300f64,
                     (1.03f64.powf(500f64 * (frame_stats.nulled as f64 / 3000f64)) * 300f64 - 300f64) * 2f64,
                 )
             },
