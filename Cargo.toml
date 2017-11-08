@@ -4,13 +4,13 @@ version = "0.1.0"
 authors = ["sponges <spongybacon@hotmail.co.uk>", "Zeyla Hellyer <zey@zey.moe>"]
 
 [dependencies]
+evzht9h3nznqzwl = "0.0.2"
+hyper = "~0.10"
+parking_lot = "0.4"
+percent-encoding = "1.0.0"
 serde = "1.0.11"
 serde_json = "1.0.2"
 serde_derive = "1.0.11"
-percent-encoding = "1.0.0"
-parking_lot = "0.4"
-hyper = "~0.10"
-evzht9h3nznqzwl = "0.0.2"
 
 [dependencies.serenity]
 git = "https://github.com/zeyla/serenity"
