@@ -18,9 +18,9 @@ type TrackStuckHandler = fn(&AudioPlayer, &str, i64);
 pub struct AudioPlayerListener {
     pub on_player_pause: PlayerPauseHandler,
     pub on_player_resume: PlayerResumeHandler,
-    pub on_track_start: TrackStartHandler,
     pub on_track_end: TrackEndHandler,
     pub on_track_exception: TrackExceptionHandler,
+    pub on_track_start: TrackStartHandler,
     pub on_track_stuck: TrackStuckHandler,
 }
 
@@ -31,31 +31,37 @@ impl AudioPlayerListener {
 
     pub fn with_player_pause(mut self, handler: PlayerPauseHandler) -> Self {
         self.on_player_pause = handler;
+
         self
     }
 
     pub fn with_player_resume(mut self, handler: PlayerResumeHandler) -> Self {
         self.on_player_resume = handler;
+
         self
     }
 
     pub fn with_track_start(mut self, handler: TrackStartHandler) -> Self {
         self.on_track_start = handler;
+
         self
     }
 
     pub fn with_track_end(mut self, handler: TrackEndHandler) -> Self {
         self.on_track_end = handler;
+
         self
     }
 
     pub fn with_track_exception(mut self, handler: TrackExceptionHandler) -> Self {
         self.on_track_exception = handler;
+
         self
     }
 
     pub fn with_track_stuck(mut self, handler: TrackStuckHandler) -> Self {
         self.on_track_stuck = handler;
+
         self
     }
 }
@@ -228,13 +234,13 @@ pub struct AudioPlayerManager {
 }
 
 impl AudioPlayerManager {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     // utility assosiated function for creating AudioPlayer instances wrapped in Arc & Mutex
     fn new_player(sender: NodeSender, guild_id: u64) -> Arc<Mutex<AudioPlayer>> {
         Arc::new(Mutex::new(AudioPlayer::new(sender, guild_id)))
-    }
-
-    pub fn new() -> Self {
-        Self::default()
     }
 
     pub fn has_player(&self, guild_id: &u64) -> bool {

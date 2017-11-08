@@ -1,3 +1,4 @@
+use serde_json::Map;
 use super::opcodes::Opcode::*;
 
 use websocket::OwnedMessage;
@@ -37,23 +38,16 @@ pub fn disconnect(guild_id: &str) -> OwnedMessage {
 }
 
 pub fn validation_response(guild_id: &str, channel_id: Option<&str>, valid: bool) -> OwnedMessage {
-    from_json(&match channel_id {
-        Some(channel_id) => {
-            json!({
-                "op": ValidationRes.to_string(),
-                "guildId": guild_id,
-                "channelId": channel_id,
-                "valid": valid,
-            })
-        },
-        None => {
-            json!({
-                "op": ValidationRes.to_string(),
-                "guildId": guild_id,
-                "valid": valid,
-            })
-        },
-    })
+    let mut map = Map::new();
+    map.insert("op".to_owned(), Value::String(ValidationRes.to_string()));
+    map.insert("guildId".to_owned(), Value::String(guild_id.to_owned()));
+    map.insert("valid".to_owned(), Value::String(valid.to_string()));
+
+    if let Some(id) = channel_id {
+        map.insert("channelId".to_owned(), Value::String(id.to_owned()));
+    }
+
+    from_json(&Value::Object(map))
 }
 
 pub fn is_connected_response(shard_id: u64, connected: bool) -> OwnedMessage {

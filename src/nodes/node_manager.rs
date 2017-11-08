@@ -18,7 +18,6 @@ impl NodeManager {
         let node = Node::connect(config, shards, Arc::clone(&self.player_manager));
 
         let mut nodes = self.nodes.write();
-
         nodes.push(Arc::new(node));
     }
 
@@ -73,12 +72,11 @@ impl NodeManager {
         let nodes = nodes.into_inner();
 
         for node in nodes {
-            let node = match Arc::try_unwrap(node) {
-                Ok(node) => node,
-                Err(_) => {
-                    println!("could not Arc::try_unwrap node");
-                    continue;
-                }
+            let node = if let Ok(node) = Arc::try_unwrap(node) {
+                node
+            } else {
+                println!("could not Arc::try_unwrap node");
+                continue;
             };
 
             node.close();

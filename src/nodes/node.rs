@@ -175,7 +175,7 @@ impl Node {
                                 let _ = ws_tx_1.send(message::validation_response(
                                     guild_id_str,
                                     channel_id_str,
-                                    valid
+                                    valid,
                                 ));
                             },
                             IsConnectedReq => {
@@ -184,7 +184,7 @@ impl Node {
 
                                 let _ = ws_tx_1.send(message::is_connected_response(
                                     shard_id,
-                                    shards.contains_key(&shard_id)
+                                    shards.contains_key(&shard_id),
                                 ));
                             },
                             PlayerUpdate => {
@@ -262,18 +262,18 @@ impl Node {
                                             on_track_stuck(&player, track, threshold_ms);
                                         }
                                     },
-                                    unexpected => {
-                                        println!("Unexpected event type: {}", unexpected);
+                                    other => {
+                                        println!("Unexpected event type: {}", other);
                                     },
                                 }
-                            }
+                            },
                             _ => {},
                         }
                     },
                     // probably wont happen
                     _ => {
                         println!("Receive loop: {:?}", message)
-                    }
+                    },
                 }
             }
         }).unwrap();
@@ -295,7 +295,6 @@ impl Node {
         println!("closing lavalink socket!");
 
         let _ = self.send(OwnedMessage::Close(None));
-
         let _ = self.send_loop.join();
         let _ = self.recv_loop.join();
     }
