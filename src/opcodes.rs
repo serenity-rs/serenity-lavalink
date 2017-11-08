@@ -67,17 +67,27 @@ pub enum Opcode {
 
 impl ToString for Opcode {
     fn to_string(&self) -> String {
-        // convert opcode's fmt::Debug name to lowerCamelCase
-        format!("{:?}", *self).chars()
-            .enumerate()
-            .map(|(i, c)| {
-                if c.is_uppercase() && i == 0 {
-                    c.to_lowercase().next().unwrap()
-                } else {
-                    c
-                }
-            })
-            .collect::<String>()
+        use self::Opcode::*;
+
+        match *self {
+            Connect => "connect",
+            Disconnect => "disconnect",
+            Event => "event",
+            IsConnectedReq => "isConnectedReq",
+            IsConnectedRes => "isConnectedRes",
+            Pause => "pause",
+            Play => "play",
+            PlayerUpdate => "playerUpdate",
+            Seek => "seek",
+            SendWS => "sendWS",
+            Stats => "stats",
+            Stop => "stop",
+            Unknown => "unknown",
+            ValidationReq => "validationReq",
+            ValidationRes => "validationRes",
+            VoiceUpdate => "voiceUpdate",
+            Volume => "volume",
+        }.to_owned()
     }
 }
 
