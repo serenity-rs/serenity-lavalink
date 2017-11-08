@@ -22,7 +22,7 @@ pub type NodeState = Arc<RwLock<State>>;
 
 pub type SerenityShardMap = Arc<parking_lot::Mutex<HashMap<u64, Arc<parking_lot::Mutex<Shard>>>>>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct NodeConfig {
     pub http_host: String,
     pub websocket_host: String,
@@ -31,18 +31,18 @@ pub struct NodeConfig {
     pub num_shards: u64,
 }
 
+#[derive(Clone, Debug, Default)]
 pub struct State {
     pub stats: Option<RemoteStats>,
 }
 
 impl State {
     fn new() -> Self {
-        Self {
-            stats: None,
-        }
+        Self::default()
     }
 }
 
+#[derive(Debug)]
 pub struct Node {
     pub websocket_host: String,
     pub sender: NodeSender,
@@ -327,6 +327,7 @@ impl Node {
     }
 }
 
+#[derive(Clone, Debug, Default)]
 pub struct NodeManager {
     pub nodes: Arc<RwLock<Vec<Arc<Node>>>>,
     pub player_manager: NodeAudioPlayerManager,
@@ -334,10 +335,7 @@ pub struct NodeManager {
 
 impl NodeManager {
     pub fn new() -> Self {
-        Self {
-            nodes: Arc::new(RwLock::new(Vec::new())),
-            player_manager: Arc::new(RwLock::new(AudioPlayerManager::new())),
-        }
+        Self::default()
     }
 
     pub fn add_node(&mut self, config: &NodeConfig, shards: SerenityShardMap) {
@@ -411,11 +409,5 @@ impl NodeManager {
 
             node.close();
         }
-    }
-}
-
-impl Default for NodeManager {
-    fn default() -> Self {
-        Self::new()
     }
 }

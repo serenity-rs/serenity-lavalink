@@ -7,6 +7,7 @@ use std::io::Read;
 use super::node::NodeConfig;
 use ::prelude::*;
 
+#[derive(Debug, Default)]
 pub struct HttpClient {
     client: Client,
     host: String,
@@ -112,7 +113,7 @@ impl HttpClient {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct LoadedTrackInfo {
     pub title: String,
     pub author: String,
@@ -126,7 +127,7 @@ pub struct LoadedTrackInfo {
     pub position: i64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct LoadedTrack {
     pub track: String,
     pub info: LoadedTrackInfo,

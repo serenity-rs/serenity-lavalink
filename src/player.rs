@@ -2,6 +2,7 @@ use super::message;
 use super::node::NodeSender;
 
 use std::collections::HashMap;
+use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::sync::{Arc, Mutex};
 use websocket::OwnedMessage;
 use ::prelude::*;
@@ -13,6 +14,7 @@ type TrackEndHandler = fn(&AudioPlayer, &str, &str);
 type TrackExceptionHandler = fn(&AudioPlayer, &str, &str);
 type TrackStuckHandler = fn(&AudioPlayer, &str, i64);
 
+#[derive(Clone)]
 pub struct AudioPlayerListener {
     pub on_player_pause: PlayerPauseHandler,
     pub on_player_resume: PlayerResumeHandler,
@@ -58,6 +60,19 @@ impl AudioPlayerListener {
     }
 }
 
+impl Debug for AudioPlayerListener {
+    fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
+        fmt.debug_struct("AudioPlayerListener")
+            .field("on_player_pause", &"player pause handler")
+            .field("on_player_resume", &"player resume handler")
+            .field("on_track_end", &"track end handler")
+            .field("on_track_exception", &"track exception handler")
+            .field("on_track_start", &"track start handler")
+            .field("on_track_stuck", &"track stuck handler")
+            .finish()
+    }
+}
+
 impl Default for AudioPlayerListener {
     fn default() -> Self {
         Self {
@@ -73,6 +88,7 @@ impl Default for AudioPlayerListener {
 
 // todo potentially split state into child struct to avoid mutable reference of AudioPlayer
 // where mutablity should not be nessesary for non state fields
+#[derive(Clone, Debug)]
 pub struct AudioPlayer {
     pub sender: NodeSender,
     pub guild_id: u64,
@@ -206,7 +222,7 @@ impl AudioPlayer {
 
 type AudioPlayerMap = HashMap<u64, Arc<Mutex<AudioPlayer>>>;
 
-#[derive(Default)]
+#[derive(Clone, Debug, Default)]
 pub struct AudioPlayerManager {
     players: AudioPlayerMap,
 }

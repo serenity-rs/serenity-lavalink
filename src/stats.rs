@@ -1,6 +1,6 @@
 use ::prelude::*;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Default)]
 pub struct FrameStats {
     // average frames sent per minute
     pub sent: i32,
@@ -10,7 +10,7 @@ pub struct FrameStats {
     pub deficit: i32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Default)]
 pub struct RemoteStats {
     pub players: i32,
     pub playing_players: i32,
