@@ -75,7 +75,7 @@ impl NodeManager {
             let node = if let Ok(node) = Arc::try_unwrap(node) {
                 node
             } else {
-                println!("could not Arc::try_unwrap node");
+                error!("could not Arc::try_unwrap node");
                 continue;
             };
 

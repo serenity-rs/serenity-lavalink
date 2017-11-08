@@ -48,7 +48,7 @@ impl HttpClient {
                     match chunk {
                         Ok(b) => v.push(b), // append the byte to the vec
                         Err(e) => {
-                            println!("error parsing response body chunk {:?}", e);
+                            error!("error parsing response body chunk {:?}", e);
                             return v;
                         },
                     };

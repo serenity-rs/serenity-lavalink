@@ -55,7 +55,7 @@ impl Node {
                 let message = match ws_rx.recv() {
                     Ok(m) => m,
                     Err(e) => {
-                        println!("Send loop: {:?}", e);
+                        error!("Send loop: {:?}", e);
                         return;
                     },
                 };
@@ -67,7 +67,7 @@ impl Node {
                 }
 
                 if let Err(e) = sender.send_message(&message) {
-                    println!("Send loop: {:?}", e);
+                    error!("Send loop: {:?}", e);
                     let _ = sender.send_message(&Message::close());
                     return;
                 }
@@ -84,7 +84,7 @@ impl Node {
                 let message = match message {
                     Ok(m) => m,
                     Err(e) => {
-                        println!("Receive loop: {:?}", e);
+                        error!("Receive loop: {:?}", e);
                         let _ = ws_tx_1.send(OwnedMessage::Close(None));
                         return;
                     },
@@ -101,7 +101,7 @@ impl Node {
                             Ok(()) => (), // ponged well
                             Err(e) => {
                                 // ponged badly and had an error, exit loop!?!>!?
-                                println!("Receive loop: {:?}", e);
+                                error!("Receive loop: {:?}", e);
                                 return;
                             },
                         }
@@ -110,7 +110,7 @@ impl Node {
                         let json: Value = match serde_json::from_str(data.as_ref()) {
                             Ok(json) => json,
                             Err(e) => {
-                                println!("could not parse json {:?}", e);
+                                error!("could not parse json {:?}", e);
                                 continue;
                             },
                         };
@@ -119,12 +119,12 @@ impl Node {
                             Some(opcode) => match Opcode::from_str(opcode) {
                                 Ok(opcode) => opcode,
                                 Err(e) => {
-                                    println!("could not parse json opcode {:?}", e);
+                                    error!("could not parse json opcode {:?}", e);
                                     continue;
                                 },
                             },
                             None => {
-                                println!("json did not include opcode - disgarding message");
+                                error!("json did not include opcode - disgarding message");
                                 continue;
                             },
                         };
@@ -199,7 +199,7 @@ impl Node {
                                 let player = match player_manager.get_player(&guild_id) {
                                     Some(player) => player, // returns already cloned Arc
                                     None => {
-                                        println!("got invalid audio player update for guild {:?}", &guild_id);
+                                        warn!("got invalid audio player update for guild {:?}", &guild_id);
                                         continue;
                                     },
                                 };
@@ -224,7 +224,7 @@ impl Node {
                                 let player = match player_manager.get_player(&guild_id) {
                                     Some(player) => player, // returns already cloned Arc
                                     None => {
-                                        println!("got invalid audio player update for guild {:?}", &guild_id);
+                                        warn!("got invalid audio player update for guild {:?}", &guild_id);
                                         continue;
                                     }
                                 };
@@ -263,7 +263,7 @@ impl Node {
                                         }
                                     },
                                     other => {
-                                        println!("Unexpected event type: {}", other);
+                                        warn!("Unexpected event type: {}", other);
                                     },
                                 }
                             },
@@ -272,7 +272,7 @@ impl Node {
                     },
                     // probably wont happen
                     _ => {
-                        println!("Receive loop: {:?}", message)
+                        debug!("Receive loop: {:?}", message)
                     },
                 }
             }
@@ -292,7 +292,7 @@ impl Node {
     }
 
     pub fn close(self) {
-        println!("closing lavalink socket!");
+        info!("closing lavalink socket!");
 
         let _ = self.send(OwnedMessage::Close(None));
         let _ = self.send_loop.join();

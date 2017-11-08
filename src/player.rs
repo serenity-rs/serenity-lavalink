@@ -146,7 +146,7 @@ impl AudioPlayer {
                 }
             },
             Err(e) => {
-                println!("play websocket send error {:?}", e);
+                error!("play websocket send error {:?}", e);
             },
         }
     }
@@ -166,10 +166,10 @@ impl AudioPlayer {
                     on_track_end(self, &track, "no reason :) :dabs:");
                 }
 
-                println!("stopped playing track {:?}", track);
+                debug!("stopped playing track {:?}", track);
             },
             Err(e) => {
-                println!("stop websocket send error {:?}", e);
+                error!("stop websocket send error {:?}", e);
             },
         }
     }
@@ -194,10 +194,10 @@ impl AudioPlayer {
                     handler(self);
                 }
 
-                println!("pause audio player: {}", pause);
+                debug!("pause audio player: {}", pause);
             },
             Err(e) => {
-                println!("pause websocket send error {:?}", e);
+                error!("pause websocket send error {:?}", e);
             },
         }
     }
@@ -217,10 +217,10 @@ impl AudioPlayer {
             Ok(_) => {
                 self.volume = volume;
 
-                println!("set volume {:?}", self.volume);
+                debug!("set volume {:?}", self.volume);
             },
             Err(e) => {
-                println!("play websocket send error {:?}", e);
+                error!("play websocket send error {:?}", e);
             },
         }
     }

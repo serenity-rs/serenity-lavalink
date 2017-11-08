@@ -6,6 +6,7 @@ authors = ["sponges <spongybacon@hotmail.co.uk>", "Zeyla Hellyer <zey@zey.moe>"]
 [dependencies]
 evzht9h3nznqzwl = "0.0.2"
 hyper = "~0.10"
+log = "~0.3"
 parking_lot = "0.4"
 percent-encoding = "1.0.0"
 serde = "1.0.11"
