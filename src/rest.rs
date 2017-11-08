@@ -4,7 +4,7 @@ use hyper::method::Method;
 use percent_encoding::{utf8_percent_encode, DEFAULT_ENCODE_SET};
 use serde_json;
 use std::io::Read;
-use super::node::NodeConfig;
+use super::nodes::NodeConfig;
 use ::prelude::*;
 
 #[derive(Debug, Default)]

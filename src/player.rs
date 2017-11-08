@@ -1,5 +1,5 @@
 use super::message;
-use super::node::NodeSender;
+use super::nodes::NodeSender;
 
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter, Result as FmtResult};

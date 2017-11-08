@@ -1,46 +1,23 @@
-use super::message;
-use super::opcodes::*;
-use super::player::*;
-use super::stats::*;
+use ::message;
 
-use parking_lot::{self, Mutex, RwLock};
+use parking_lot::{Mutex, RwLock};
 use serde_json;
-use serenity::gateway::Shard;
-use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::Arc;
-use std::sync::mpsc::{channel, Sender};
-use std::thread::{self, JoinHandle};
-use websocket::client::ClientBuilder;
+use std::sync::{Arc, mpsc};
+use std::thread::{Builder as ThreadBuilder, JoinHandle};
+use super::{
+    NodeAudioPlayerManager,
+    NodeConfig,
+    NodeSender,
+    NodeState,
+    SerenityShardMap,
+    State,
+};
 use websocket::header::Headers;
-use websocket::{Message, OwnedMessage};
+use websocket::{ClientBuilder, Message, OwnedMessage};
+use ::opcodes::Opcode;
 use ::prelude::*;
-
-pub type NodeAudioPlayerManager = Arc<RwLock<AudioPlayerManager>>;
-pub type NodeSender = Arc<Mutex<Sender<OwnedMessage>>>;
-pub type NodeState = Arc<RwLock<State>>;
-
-pub type SerenityShardMap = Arc<parking_lot::Mutex<HashMap<u64, Arc<parking_lot::Mutex<Shard>>>>>;
-
-#[derive(Clone, Debug)]
-pub struct NodeConfig {
-    pub http_host: String,
-    pub websocket_host: String,
-    pub user_id: String,
-    pub password: String,
-    pub num_shards: u64,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct State {
-    pub stats: Option<RemoteStats>,
-}
-
-impl State {
-    fn new() -> Self {
-        Self::default()
-    }
-}
+use ::stats::RemoteStats;
 
 #[derive(Debug)]
 pub struct Node {
@@ -67,12 +44,12 @@ impl Node {
 
         let (mut receiver, mut sender) = client.split().unwrap();
 
-        let (ws_tx, ws_rx) = channel();
+        let (ws_tx, ws_rx) = mpsc::channel();
         let ws_tx_1 = ws_tx.clone();
 
         let state = Arc::new(RwLock::new(State::new()));
 
-        let builder = thread::Builder::new().name("send loop".into());
+        let builder = ThreadBuilder::new().name("send loop".into());
         let send_loop = builder.spawn(move || {
             loop {
                 let message = match ws_rx.recv() {
@@ -101,7 +78,7 @@ impl Node {
 
         //let player_manager_cloned = player_manager.clone(); // clone for move to recv loop
 
-        let builder = thread::Builder::new().name("recv loop".into());
+        let builder = ThreadBuilder::new().name("recv loop".into());
         let recv_loop = builder.spawn(move || {
             for message in receiver.incoming_messages() {
                 let message = match message {
@@ -152,7 +129,7 @@ impl Node {
                             },
                         };
 
-                        use super::opcodes::Opcode::*;
+                        use self::Opcode::*;
 
                         match opcode {
                             SendWS => {
@@ -321,88 +298,5 @@ impl Node {
 
         let _ = self.send_loop.join();
         let _ = self.recv_loop.join();
-    }
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct NodeManager {
-    pub nodes: Arc<RwLock<Vec<Arc<Node>>>>,
-    pub player_manager: NodeAudioPlayerManager,
-}
-
-impl NodeManager {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn add_node(&mut self, config: &NodeConfig, shards: SerenityShardMap) {
-        let node = Node::connect(config, shards, Arc::clone(&self.player_manager));
-
-        let mut nodes = self.nodes.write();
-
-        nodes.push(Arc::new(node));
-    }
-
-    pub fn determine_best_node(&self) -> Option<Arc<Node>> {
-        let nodes = self.nodes.read();
-
-        let mut record = i32::max_value();
-        let mut best = None;
-
-        for node in nodes.iter() {
-            let total = Self::get_penalty(node).unwrap_or(0);
-
-            if total < record {
-                best = Some(Arc::clone(node));
-                record = total;
-            }
-        }
-
-        best
-    }
-
-    pub fn get_penalty(node: &Arc<Node>) -> Result<i32> {
-        let state = node.state.read();
-
-        let stats = match state.stats.clone() {
-            Some(stats) => stats,
-            None => return Err(Error::StatsNotPresent),
-        };
-
-        let cpu = 1.05f64.powf(100f64 * stats.system_load) * 10f64 - 10f64;
-
-        let (deficit_frame, null_frame) = match stats.frame_stats {
-            Some(frame_stats) => {
-                (
-                    1.03f64.powf(500f64 * (f64::from(frame_stats.deficit) / 3000f64)) * 300f64 - 300f64,
-                    (1.03f64.powf(500f64 * (f64::from(frame_stats.nulled) / 3000f64)) * 300f64 - 300f64) * 2f64,
-                )
-            },
-            None => (0f64, 0f64),
-        };
-
-        Ok(stats.playing_players + cpu as i32 + deficit_frame as i32 + null_frame as i32)
-    }
-
-    pub fn close(self) {
-        let nodes = if let Ok(nodes) = Arc::try_unwrap(self.nodes) {
-            nodes
-        } else {
-            panic!("could not Arc::try_unwrap self.nodes");
-        };
-
-        let nodes = nodes.into_inner();
-
-        for node in nodes {
-            let node = match Arc::try_unwrap(node) {
-                Ok(node) => node,
-                Err(_) => {
-                    println!("could not Arc::try_unwrap node");
-                    continue;
-                }
-            };
-
-            node.close();
-        }
     }
 }

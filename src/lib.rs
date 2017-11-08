@@ -9,7 +9,7 @@ extern crate serde;
 extern crate serenity;
 
 pub mod message;
-pub mod node;
+pub mod nodes;
 pub mod opcodes;
 pub mod player;
 pub mod rest;
