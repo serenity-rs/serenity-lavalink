@@ -7,9 +7,8 @@ pub use self::node_manager::NodeManager;
 use super::player::*;
 use super::stats::*;
 
-use parking_lot::{self, Mutex, RwLock};
-use serenity::gateway::Shard;
-use std::collections::HashMap;
+use parking_lot::{Mutex, RwLock};
+use serenity::client::bridge::gateway::ShardManager;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use websocket::OwnedMessage;
@@ -17,8 +16,7 @@ use websocket::OwnedMessage;
 pub type NodeAudioPlayerManager = Arc<RwLock<AudioPlayerManager>>;
 pub type NodeSender = Arc<Mutex<Sender<OwnedMessage>>>;
 pub type NodeState = Arc<RwLock<State>>;
-
-pub type SerenityShardMap = Arc<parking_lot::Mutex<HashMap<u64, Arc<parking_lot::Mutex<Shard>>>>>;
+pub type SerenityShardManager = Arc<Mutex<ShardManager>>;
 
 #[derive(Clone, Debug)]
 pub struct NodeConfig {

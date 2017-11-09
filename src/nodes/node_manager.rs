@@ -1,6 +1,6 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
-use super::{Node, NodeAudioPlayerManager, NodeConfig, SerenityShardMap};
+use super::{Node, NodeAudioPlayerManager, NodeConfig, SerenityShardManager};
 use ::prelude::*;
 
 #[derive(Clone, Debug, Default)]
@@ -14,8 +14,8 @@ impl NodeManager {
         Self::default()
     }
 
-    pub fn add_node(&mut self, config: &NodeConfig, shards: SerenityShardMap) {
-        let node = Node::connect(config, shards, Arc::clone(&self.player_manager));
+    pub fn add_node(&mut self, config: &NodeConfig, manager: SerenityShardManager) {
+        let node = Node::connect(config, manager, Arc::clone(&self.player_manager));
 
         let mut nodes = self.nodes.write();
         nodes.push(Arc::new(node));

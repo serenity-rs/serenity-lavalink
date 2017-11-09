@@ -2,6 +2,11 @@ use ::message;
 
 use parking_lot::{Mutex, RwLock};
 use serde_json;
+use serenity::client::bridge::gateway::{
+    ShardClientMessage,
+    ShardId,
+    ShardRunnerMessage,
+};
 use std::str::FromStr;
 use std::sync::{Arc, mpsc};
 use std::thread::{Builder as ThreadBuilder, JoinHandle};
@@ -10,7 +15,7 @@ use super::{
     NodeConfig,
     NodeSender,
     NodeState,
-    SerenityShardMap,
+    SerenityShardManager,
     State,
 };
 use websocket::header::Headers;
@@ -29,7 +34,7 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn connect(config: &NodeConfig, shards: SerenityShardMap, player_manager: NodeAudioPlayerManager) -> Self {
+    pub fn connect(config: &NodeConfig, shards: SerenityShardManager, player_manager: NodeAudioPlayerManager) -> Self {
         let mut headers = Headers::new();
         headers.set_raw("Authorization", vec![config.password.clone().as_bytes().to_vec()]);
         headers.set_raw("Num-Shards", vec![config.num_shards.to_string().as_bytes().to_vec()]);
@@ -136,11 +141,14 @@ impl Node {
                                 let shard_id = json["shardId"].as_u64().expect("invalid json shardId - should be u64");
                                 let message = json["message"].as_str().expect("invalid json message - should be str");
 
-                                let shards = &*shards.lock();
-                                let shard = &mut *shards.get(&shard_id).unwrap().lock();
+                                let shards = shards.lock();
+                                let mut runners = shards.runners.lock();
+                                let mut shard = runners.get_mut(&ShardId(shard_id)).unwrap();
 
-                                //let _ = shard.client.send_message(&Evzht9h3nznqzwlMessage::text(message.to_owned()));
-                                let _ = shard.client.send_message(&OwnedMessage::Text(message.to_owned()));
+                                let msg = ShardClientMessage::Runner(
+                                    ShardRunnerMessage::Message(OwnedMessage::Text(message.to_owned()))
+                                );
+                                let _ = shard.runner_tx.send(msg);
                             },
                             ValidationReq => {
                                 let guild_id_str = json["guildId"].as_str().expect("invalid json guildId - should be str");
@@ -180,11 +188,11 @@ impl Node {
                             },
                             IsConnectedReq => {
                                 let shard_id = json["shardId"].as_u64().expect("invalid json shardId - should be u64");
-                                let shards = &*shards.lock();
+                                let shards = shards.lock();
 
                                 let _ = ws_tx_1.send(message::is_connected_response(
                                     shard_id,
-                                    shards.contains_key(&shard_id),
+                                    shards.has(ShardId(shard_id)),
                                 ));
                             },
                             PlayerUpdate => {
