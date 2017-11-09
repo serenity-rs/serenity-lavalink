@@ -14,11 +14,14 @@ impl NodeManager {
         Self::default()
     }
 
-    pub fn add_node(&mut self, config: &NodeConfig, manager: SerenityShardManager) {
+    pub fn add_node(&mut self, config: &NodeConfig, manager: SerenityShardManager)
+        -> Result<()> {
         let node = Node::connect(config, manager, Arc::clone(&self.player_manager));
 
         let mut nodes = self.nodes.write();
-        nodes.push(Arc::new(node));
+        nodes.push(Arc::new(node?));
+
+        Ok(())
     }
 
     pub fn determine_best_node(&self) -> Option<Arc<Node>> {
@@ -62,11 +65,13 @@ impl NodeManager {
         Ok(stats.playing_players + cpu as i32 + deficit_frame as i32 + null_frame as i32)
     }
 
-    pub fn close(self) {
+    pub fn close(self) -> bool {
         let nodes = if let Ok(nodes) = Arc::try_unwrap(self.nodes) {
             nodes
         } else {
-            panic!("could not Arc::try_unwrap self.nodes");
+            error!("could not Arc::try_unwrap self.nodes on close");
+
+            return false;
         };
 
         let nodes = nodes.into_inner();
@@ -81,5 +86,7 @@ impl NodeManager {
 
             node.close();
         }
+
+        true
     }
 }

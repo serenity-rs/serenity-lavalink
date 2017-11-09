@@ -22,7 +22,6 @@ use websocket::header::Headers;
 use websocket::{ClientBuilder, Message, OwnedMessage};
 use ::opcodes::Opcode;
 use ::prelude::*;
-use ::stats::RemoteStats;
 
 #[derive(Debug)]
 pub struct Node {
@@ -34,20 +33,18 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn connect(config: &NodeConfig, shards: SerenityShardManager, player_manager: NodeAudioPlayerManager) -> Self {
+    pub fn connect(config: &NodeConfig, shards: SerenityShardManager, player_manager: NodeAudioPlayerManager) -> Result<Self> {
         let mut headers = Headers::new();
         headers.set_raw("Authorization", vec![config.password.clone().as_bytes().to_vec()]);
         headers.set_raw("Num-Shards", vec![config.num_shards.to_string().as_bytes().to_vec()]);
         headers.set_raw("User-Id", vec![config.user_id.clone().as_bytes().to_vec()]);
 
-        let client = ClientBuilder::new(config.websocket_host.clone().as_ref())
-            .unwrap()
+        let client = ClientBuilder::new(config.websocket_host.clone().as_ref())?
             .add_protocol("rust-websocket")
             .custom_headers(&headers)
-            .connect_insecure()
-            .unwrap();
+            .connect_insecure()?;
 
-        let (mut receiver, mut sender) = client.split().unwrap();
+        let (mut receiver, mut sender) = client.split()?;
 
         let (ws_tx, ws_rx) = mpsc::channel();
         let ws_tx_1 = ws_tx.clone();
@@ -143,12 +140,12 @@ impl Node {
 
                                 let shards = shards.lock();
                                 let mut runners = shards.runners.lock();
-                                let mut shard = runners.get_mut(&ShardId(shard_id)).unwrap();
-
-                                let msg = ShardClientMessage::Runner(
-                                    ShardRunnerMessage::Message(OwnedMessage::Text(message.to_owned()))
-                                );
-                                let _ = shard.runner_tx.send(msg);
+                                if let Some(shard) = runners.get_mut(&ShardId(shard_id)) {
+                                    let msg = ShardClientMessage::Runner(
+                                        ShardRunnerMessage::Message(OwnedMessage::Text(message.to_owned()))
+                                    );
+                                    let _ = shard.runner_tx.send(msg);
+                                }
                             },
                             ValidationReq => {
                                 let guild_id_str = json["guildId"].as_str().expect("invalid json guildId - should be str");
@@ -217,7 +214,7 @@ impl Node {
                                 player.position = position;
                             },
                             Stats => {
-                                let stats = RemoteStats::from_json(&json);
+                                let stats = serde_json::from_value(json).expect("Error parsing stats");
 
                                 let mut state = recv_state.write();
                                 state.stats = Some(stats);
@@ -239,7 +236,7 @@ impl Node {
 
                                 let mut player = player.lock().expect("could not get access to player mutex"); // unlock the player mutex
 
-                                match json["type"].as_str().unwrap() {
+                                match json["type"].as_str().expect("Err parsing type to str") {
                                     "TrackEndEvent" => {
                                         let reason = json["reason"].as_str().expect("invalid json reason - should be str");
 
@@ -286,13 +283,13 @@ impl Node {
             }
         }).unwrap();
 
-        Node {
+        Ok(Node {
             websocket_host: config.websocket_host.clone(),
             sender: Arc::new(Mutex::new(ws_tx)),
             send_loop,
             recv_loop,
             state,
-        }
+        })
     }
 
     pub fn send(&self, message: OwnedMessage) -> Result<()> {

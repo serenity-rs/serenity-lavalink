@@ -11,17 +11,15 @@ use ::prelude::*;
 pub struct HttpClient {
     client: Client,
     host: String,
-    password: String,
+    password: Vec<u8>,
 }
 
 impl HttpClient {
-    pub fn new(config: &NodeConfig) -> Self {
-        let client = Client::new();
-
+    pub fn new(config: NodeConfig) -> Self {
         Self {
-            client,
-            host: config.http_host.clone(),
-            password: config.password.clone(),
+            client: Client::new(),
+            host: config.http_host,
+            password: config.password.into_bytes(),
         }
     }
 
@@ -31,7 +29,7 @@ impl HttpClient {
         let mut headers = Headers::new();
 
         // cant use hyper::header::Authorization because it requires prefix of Basic or Bearer
-        headers.set_raw("Authorization", vec![self.password.as_bytes().to_vec()]);
+        headers.set_raw("Authorization", vec![self.password.clone()]);
 
         if let Some((body, content_type)) = body {
             builder = builder.body(Body::BufBody(body, body.len()));
@@ -67,14 +65,9 @@ impl HttpClient {
         let uri = format!("/loadtracks?identifier={}", identifier);
         let request = self.create_request(Method::Get, uri.as_ref(), None);
 
-        let response = match self.run_request(request) {
-            Ok(response) => response,
-            Err(e) => return Err(e),
-        };
-
-        let deserialized: Vec<LoadedTrack> = serde_json::from_slice(&response).unwrap();
-
-        Ok(deserialized)
+        self.run_request(request)
+            .and_then(|resp| serde_json::from_slice(&resp).map_err(From::from))
+            .map_err(From::from)
     }
 
     #[allow(unused)]
@@ -82,34 +75,26 @@ impl HttpClient {
         let uri = format!("/decodetrack?track={}", track);
         let request = self.create_request(Method::Get, uri.as_ref(), None);
 
-        let response = match self.run_request(request) {
-            Ok(response) => response,
-            Err(e) => return Err(e),
-        };
+        let response = self.run_request(request)?;
 
-        let deserialized: LoadedTrackInfo = serde_json::from_slice(&response).unwrap();
+        let info = serde_json::from_slice(&response)?;
 
         Ok(LoadedTrack {
             track: track.to_string(),
-            info: deserialized,
+            info,
         })
     }
 
     #[allow(unused)]
     pub fn decode_tracks(&self, tracks: Vec<String>) -> Result<Vec<LoadedTrack>> {
-        let tracks = serde_json::to_vec(&tracks).unwrap();
+        let tracks = serde_json::to_vec(&tracks)?;
         let body = (tracks.as_ref(), ContentType::json());
 
         let request = self.create_request(Method::Post, "/decodetracks", Some(body));
 
-        let response = match self.run_request(request) {
-            Ok(response) => response,
-            Err(e) => return Err(e),
-        };
-
-        let deserialized: Vec<LoadedTrack> = serde_json::from_slice(&response).unwrap();
-
-        Ok(deserialized)
+        self.run_request(request)
+            .and_then(|resp| serde_json::from_slice(&resp).map_err(From::from))
+            .map_err(From::from)
     }
 }
 
