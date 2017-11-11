@@ -58,10 +58,17 @@ pub fn is_connected_response(shard_id: u64, connected: bool) -> OwnedMessage {
     }))
 }
 
-pub fn play(guild_id: &str, track: &str) -> OwnedMessage {
+pub fn play(
+    guild_id: &str,
+    track: &str,
+    start_time: Option<u64>,
+    end_time: Option<u64>,
+) -> OwnedMessage {
     from_json(&json!({
         "op": Play.to_string(),
+        "endTime": end_time,
         "guildId": guild_id,
+        "startTime": start_time,
         "track": track,
     }))
 }

@@ -130,10 +130,17 @@ impl AudioPlayer {
         self.sender.lock().send(message).map_err(From::from)
     }
 
-    pub fn play(&mut self, track: &str) {
+    pub fn play(
+        &mut self,
+        track: &str,
+        start_time: Option<u64>,
+        end_time: Option<u64>,
+    ) {
         let result = self.send(message::play(
             &self.guild_id.to_string(),
-            track
+            track,
+            start_time,
+            end_time,
         ));
 
         match result {
