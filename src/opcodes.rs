@@ -1,7 +1,8 @@
 use std::str::FromStr;
 use std::string::ToString;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum Opcode {
     // client -> server | Make the server queue a voice connection
     // guild_id: String, channel_id: String

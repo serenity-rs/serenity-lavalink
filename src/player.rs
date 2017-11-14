@@ -1,6 +1,5 @@
-use super::message;
+use super::model::{IntoWebSocketMessage, Pause, Play, Stop, Volume};
 use super::nodes::NodeSender;
-
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::sync::{Arc, Mutex};
@@ -135,13 +134,13 @@ impl AudioPlayer {
         track: &str,
         start_time: Option<u64>,
         end_time: Option<u64>,
-    ) {
-        let result = self.send(message::play(
-            &self.guild_id.to_string(),
+    ) -> Result<()> {
+        let result = self.send(Play::new(
+            &self.guild_id.to_string()[..],
             track,
             start_time,
             end_time,
-        ));
+        ).into_ws_message()?);
 
         match result {
             Ok(_) => {
@@ -156,12 +155,14 @@ impl AudioPlayer {
                 error!("play websocket send error {:?}", e);
             },
         }
+
+        Ok(())
     }
 
-    pub fn stop(&mut self) {
-        let result = self.send(message::stop(
-            &self.guild_id.to_string()
-        ));
+    pub fn stop(&mut self) -> Result<()> {
+        let result = self.send(Stop::new(
+            &self.guild_id.to_string()[..],
+        ).into_ws_message()?);
 
         match result {
             Ok(_) => {
@@ -179,13 +180,15 @@ impl AudioPlayer {
                 error!("stop websocket send error {:?}", e);
             },
         }
+
+        Ok(())
     }
 
-    pub fn pause(&mut self, pause: bool) {
-        let result = self.send(message::pause(
-            &self.guild_id.to_string(),
-            pause
-        ));
+    pub fn pause(&mut self, pause: bool) -> Result<()> {
+        let result = self.send(Pause::new(
+            &self.guild_id.to_string()[..],
+            pause,
+        ).into_ws_message()?);
 
         match result {
             Ok(_) => {
@@ -207,6 +210,8 @@ impl AudioPlayer {
                 error!("pause websocket send error {:?}", e);
             },
         }
+
+        Ok(())
     }
 
     #[allow(unused)]
@@ -214,11 +219,11 @@ impl AudioPlayer {
         unimplemented!()
     }
 
-    pub fn volume(&mut self, volume: i32) {
-        let result = self.send(message::volume(
-            &self.guild_id.to_string(),
-            volume
-        ));
+    pub fn volume(&mut self, volume: i32) -> Result<()> {
+        let result = self.send(Volume::new(
+            &self.guild_id.to_string()[..],
+            volume,
+        ).into_ws_message()?);
 
         match result {
             Ok(_) => {
@@ -230,6 +235,8 @@ impl AudioPlayer {
                 error!("play websocket send error {:?}", e);
             },
         }
+
+        Ok(())
     }
 }
 

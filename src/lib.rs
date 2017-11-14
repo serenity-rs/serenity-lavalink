@@ -1,6 +1,6 @@
 #[macro_use] extern crate log;
 #[macro_use] extern crate serde_derive;
-#[macro_use] extern crate serde_json;
+extern crate serde_json;
 
 extern crate evzht9h3nznqzwl as websocket;
 extern crate hyper;
@@ -9,7 +9,7 @@ extern crate percent_encoding;
 extern crate serde;
 extern crate serenity;
 
-pub mod message;
+pub mod model;
 pub mod nodes;
 pub mod opcodes;
 pub mod player;

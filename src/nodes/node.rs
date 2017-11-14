@@ -1,4 +1,4 @@
-use ::message;
+use ::model::{IntoWebSocketMessage, IsConnectedResponse, ValidationResponse};
 
 use parking_lot::{Mutex, RwLock};
 use serde_json;
@@ -177,20 +177,28 @@ impl Node {
                                 };*/
                                 let valid = true; // todo remove
 
-                                let _ = ws_tx_1.send(message::validation_response(
+                                let msg = ValidationResponse::new(
                                     guild_id_str,
                                     channel_id_str,
                                     valid,
-                                ));
+                                ).into_ws_message();
+
+                                if let Ok(msg) = msg {
+                                    let _ = ws_tx_1.send(msg);
+                                }
                             },
                             IsConnectedReq => {
                                 let shard_id = json["shardId"].as_u64().expect("invalid json shardId - should be u64");
                                 let shards = shards.lock();
 
-                                let _ = ws_tx_1.send(message::is_connected_response(
+                                let msg = IsConnectedResponse::new(
                                     shard_id,
                                     shards.has(ShardId(shard_id)),
-                                ));
+                                ).into_ws_message();
+
+                                if let Ok(msg) = msg {
+                                    let _ = ws_tx_1.send(msg);
+                                }
                             },
                             PlayerUpdate => {
                                 let guild_id_str = json["guildId"].as_str().expect("expected json guildId - should be str");
