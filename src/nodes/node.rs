@@ -66,13 +66,13 @@ impl Node {
 
         let builder = ThreadBuilder::new().name("recv loop".into());
         let recv_loop = builder.spawn(move || {
-            recv_loop(
-                &mut receiver,
-                &ws_tx_1,
-                &shards,
-                &recv_state,
-                &player_manager,
-            );
+            ReceiveLoop {
+                player_manager: &player_manager,
+                receiver: &mut receiver,
+                recv_state: &recv_state,
+                shards: &shards,
+                ws_tx_1: &ws_tx_1,
+            }.run();
         }).unwrap();
 
         Ok(Node {
@@ -97,218 +97,304 @@ impl Node {
     }
 }
 
-fn recv_loop(
-    receiver: &mut WebSocketReader<TcpStream>,
-    ws_tx_1: &MpscSender<OwnedMessage>,
-    shards: &SerenityShardManager,
-    recv_state: &NodeState,
-    player_manager: &NodeAudioPlayerManager,
-) {
-    for message in receiver.incoming_messages() {
-        let message = match message {
-            Ok(m) => m,
-            Err(e) => {
-                error!("Receive loop: {:?}", e);
-                let _ = ws_tx_1.send(OwnedMessage::Close(None));
-                return;
-            },
-        };
+struct ReceiveLoop<'a> {
+    receiver: &'a mut WebSocketReader<TcpStream>,
+    ws_tx_1: &'a MpscSender<OwnedMessage>,
+    shards: &'a SerenityShardManager,
+    recv_state: &'a NodeState,
+    player_manager: &'a NodeAudioPlayerManager,
+}
 
-        match message {
-            // sever sent close msg, pass to send loop & break from loop
-            OwnedMessage::Close(_) => {
-                let _ = ws_tx_1.send(OwnedMessage::Close(None));
+impl<'a> ReceiveLoop<'a> {
+    fn run(&mut self) {
+        loop {
+            let msg: OwnedMessage = match self.recv() {
+                Ok(msg) => msg,
+                Err(why) => {
+                    error!("Error receiving msg: {:?}", why);
+                    info!("Shutting down receive loop");
+                    let _ = self.ws_tx_1.send(OwnedMessage::Close(None));
+
+                    return;
+                },
+            };
+
+            if !self.handle_message(msg) {
                 return;
+            }
+        }
+    }
+
+    fn recv(&mut self) -> Result<OwnedMessage> {
+        self.receiver.recv_message().map_err(From::from)
+    }
+
+    /// Handles the received message.
+    ///
+    /// Returns whether to continue the loop.
+    fn handle_message(&self, msg: OwnedMessage) -> bool {
+        match msg {
+            OwnedMessage::Close(_) => {
+                // sever sent close msg, pass to send loop & break from loop
+                let _ = self.ws_tx_1.send(OwnedMessage::Close(None));
+
+                return false;
             },
             OwnedMessage::Ping(data) => {
-                match ws_tx_1.send(OwnedMessage::Pong(data)) {
-                    Ok(()) => (), // ponged well
-                    Err(e) => {
-                        // ponged badly and had an error, exit loop!?!>!?
-                        error!("Receive loop: {:?}", e);
-                        return;
-                    },
+                if let Err(why) = self.ws_tx_1.send(OwnedMessage::Pong(data)) {
+                    error!("Error ponging in receive loop: {:?}", why);
+
+                    return false;
                 }
             },
             OwnedMessage::Text(data) => {
-                let json: Value = match serde_json::from_str(data.as_ref()) {
+                let json = match serde_json::from_str::<Value>(data.as_ref()) {
                     Ok(json) => json,
-                    Err(e) => {
-                        error!("could not parse json {:?}", e);
-                        continue;
+                    Err(why) => {
+                        error!("Err parsing JSON in receive loop: {:?}", why);
+
+                        return true;
                     },
                 };
 
                 let opcode = match json["op"].as_str() {
                     Some(opcode) => match Opcode::from_str(opcode) {
                         Ok(opcode) => opcode,
-                        Err(e) => {
-                            error!("could not parse json opcode {:?}", e);
-                            continue;
+                        Err(why) => {
+                            error!("Err parsing opcode: {:?}", why);
+
+                            return true;
                         },
                     },
                     None => {
-                        error!("json did not include opcode - disgarding message");
-                        continue;
+                        error!("Receive loop msg had no opcode; disregarding");
+
+                        return true;
                     },
                 };
 
-                use self::Opcode::*;
-
-                match opcode {
-                    SendWS => {
-                        let shard_id = json["shardId"].as_u64().expect("invalid json shardId - should be u64");
-                        let message = json["message"].as_str().expect("invalid json message - should be str");
-
-                        let shards = shards.lock();
-                        let mut runners = shards.runners.lock();
-                        if let Some(shard) = runners.get_mut(&ShardId(shard_id)) {
-                            let msg = ShardClientMessage::Runner(
-                                ShardRunnerMessage::Message(OwnedMessage::Text(message.to_owned()))
-                            );
-                            let _ = shard.runner_tx.send(msg);
-                        }
-                    },
-                    ValidationReq => {
-                        let guild_id_str = json["guildId"].as_str().expect("invalid json guildId - should be str");
-                        let _guild_id_u64 = guild_id_str.parse::<u64>().expect("could not parse json guildId as u64");
-                        let channel_id_str = json["channelId"].as_str();
-
-                        // serenity inserts guilds into the cache once it becomes available
-                        // so i need to wait for the guild to become available before
-                        // initiating the connection
-                        //
-                        // this should not be an issue once connections are issued via
-                        // commands as the command cannot be handled before the guild is
-                        // available :)
-                        //
-                        // for testing i have set it to always return true as lavalink will
-                        // continuously send validation requests and voice state updates
-                        // until it has a voice server update anyway
-
-                        /*let valid = match GuildId(guild_id_u64).find() {
-                            Some(_) => {
-                                if let Some(channel_id) = channel_id_str {
-                                    let channel_id = ChannelId(channel_id.parse::<u64>().unwrap());
-                                    channel_id.find().is_some()
-                                } else {
-                                    true
-                                }
-                            },
-                            None => false,
-                        };*/
-                        let valid = true; // todo remove
-
-                        let msg = ValidationResponse::new(
-                            guild_id_str,
-                            channel_id_str,
-                            valid,
-                        ).into_ws_message();
-
-                        if let Ok(msg) = msg {
-                            let _ = ws_tx_1.send(msg);
-                        }
-                    },
-                    IsConnectedReq => {
-                        let shard_id = json["shardId"].as_u64().expect("invalid json shardId - should be u64");
-                        let shards = shards.lock();
-
-                        let msg = IsConnectedResponse::new(
-                            shard_id,
-                            shards.has(ShardId(shard_id)),
-                        ).into_ws_message();
-
-                        if let Ok(msg) = msg {
-                            let _ = ws_tx_1.send(msg);
-                        }
-                    },
-                    PlayerUpdate => {
-                        let guild_id_str = json["guildId"].as_str().expect("expected json guildId - should be str");
-                        let guild_id = guild_id_str.parse::<u64>().expect("could not parse json guild_id into u64");
-                        let state = json["state"].as_object().expect("json does not contain state object");
-                        let time = state["time"].as_i64().expect("json state object does not contain time - should be i64");
-                        let position = state["position"].as_i64().expect("json state object does not contain position - should be i64");
-
-                        let player_manager = player_manager.read(); // unlock the mutex
-
-                        let player = match player_manager.get_player(&guild_id) {
-                            Some(player) => player, // returns already cloned Arc
-                            None => {
-                                warn!("got invalid audio player update for guild {:?}", &guild_id);
-                                continue;
-                            },
-                        };
-
-                        let mut player = player.lock().expect("could not get access to player mutex"); // unlock the player mutex
-                        player.time = time;
-                        player.position = position;
-                    },
-                    Stats => {
-                        let stats = serde_json::from_value(json).expect("Error parsing stats");
-
-                        let mut state = recv_state.write();
-                        state.stats = Some(stats);
-                    },
-                    Event => {
-                        let guild_id_str = json["guildId"].as_str().expect("invalid json guildId - should be str");
-                        let guild_id = guild_id_str.parse::<u64>().expect("could not parse json guild_id into u64");
-                        let track = json["track"].as_str().expect("invalid json track - should be str");
-
-                        let player_manager = player_manager.read(); // unlock the mutex
-
-                        let player = match player_manager.get_player(&guild_id) {
-                            Some(player) => player, // returns already cloned Arc
-                            None => {
-                                warn!("got invalid audio player update for guild {:?}", &guild_id);
-                                continue;
-                            }
-                        };
-
-                        let mut player = player.lock().expect("could not get access to player mutex"); // unlock the player mutex
-
-                        match json["type"].as_str().expect("Err parsing type to str") {
-                            "TrackEndEvent" => {
-                                let reason = json["reason"].as_str().expect("invalid json reason - should be str");
-
-                                player.track = None; // set track to None so nothing is playing
-                                player.time = 0; // reset the time
-                                player.position = 0; // reset the position
-
-                                for listener in &player.listeners {
-                                    let on_track_end = &listener.on_track_end;
-                                    on_track_end(&player, track, reason);
-                                }
-                            },
-                            "TrackExceptionEvent" => {
-                                let error = json["error"].as_str().expect("invalid json error - should be str");
-
-                                // todo determine if should keep playing
-
-                                for listener in &player.listeners {
-                                    let on_track_exception = &listener.on_track_exception;
-                                    on_track_exception(&player, track, error);
-                                }
-                            },
-                            "TrackStuckEvent" => {
-                                let threshold_ms = json["thresholdMs"].as_i64().expect("invalid json thresholdMs - should be i64");
-
-                                for listener in &player.listeners {
-                                    let on_track_stuck = &listener.on_track_stuck;
-                                    on_track_stuck(&player, track, threshold_ms);
-                                }
-                            },
-                            other => {
-                                warn!("Unexpected event type: {}", other);
-                            },
-                        }
-                    },
-                    _ => {},
-                }
+                self.handle_opcode(json, opcode);
             },
             // probably wont happen
             _ => {
-                debug!("Receive loop: {:?}", message)
+                debug!("Receive loop: {:?}", msg)
             },
+        }
+
+        true
+    }
+
+    fn handle_opcode(&self, json: Value, opcode: Opcode) {
+        use self::Opcode::*;
+
+        match opcode {
+            SendWS => self.handle_send_ws(json),
+            ValidationReq => self.handle_validation_request(json),
+            IsConnectedReq => self.handle_is_connected_request(json),
+            PlayerUpdate => self.handle_player_update(json),
+            Stats => self.handle_state(json),
+            Event => self.handle_event(json),
+            _ => return,
+        };
+    }
+
+    fn handle_event(&self, json: Value) {
+
+        let guild_id_str = json["guildId"]
+            .as_str()
+            .expect("invalid json guildId - should be str");
+        let guild_id = guild_id_str
+            .parse::<u64>()
+            .expect("could not parse json guild_id into u64");
+        let track = json["track"]
+            .as_str()
+            .expect("invalid json track - should be str");
+
+        let player_manager = self.player_manager.read();
+
+        let player = match player_manager.get_player(&guild_id) {
+            Some(player) => player,
+            None => {
+                warn!(
+                    "got invalid audio player update for guild {:?}",
+                    guild_id,
+                );
+
+                return;
+            }
+        };
+
+        let mut player = player
+            .lock()
+            .expect("could not get access to player mutex");
+
+        match json["type"].as_str().expect("Err parsing type to str") {
+            "TrackEndEvent" => {
+                let reason = json["reason"]
+                    .as_str()
+                    .expect("invalid json reason - should be str");
+
+                // Set the player's track so nothing is playing, reset
+                // the time, and reset the position
+                player.track = None;
+                player.time = 0;
+                player.position = 0;
+
+                for listener in &player.listeners {
+                    (listener.on_track_end)(&player, track, reason);
+                }
+            },
+            "TrackExceptionEvent" => {
+                let error = json["error"]
+                    .as_str()
+                    .expect("invalid json error - should be str");
+
+                // TODO: determine if should keep playing
+
+                for listener in &player.listeners {
+                    (listener.on_track_exception)(&player, track, error);
+                }
+            },
+            "TrackStuckEvent" => {
+                let threshold_ms = json["thresholdMs"]
+                    .as_i64()
+                    .expect("invalid json thresholdMs - should be i64");
+
+                for listener in &player.listeners {
+                    (listener.on_track_stuck)(
+                        &player,
+                        track,
+                        threshold_ms,
+                    );
+                }
+            },
+            other => {
+                warn!("Unexpected event type: {}", other);
+            },
+        }
+    }
+
+    fn handle_is_connected_request(&self, json: Value) {
+        let shard_id = json["shardId"]
+            .as_u64()
+            .expect("invalid json shardId - should be u64");
+        let shards = self.shards.lock();
+
+        let msg = IsConnectedResponse::new(
+            shard_id,
+            shards.has(ShardId(shard_id)),
+        ).into_ws_message();
+
+        if let Ok(msg) = msg {
+            let _ = self.ws_tx_1.send(msg);
+        }
+    }
+
+    fn handle_player_update(&self, json: Value) {
+        let guild_id_str = json["guildId"]
+            .as_str()
+            .expect("expected json guildId - should be str");
+        let guild_id = guild_id_str
+            .parse::<u64>()
+            .expect("could not parse json guild_id into u64");
+        let state = json["state"]
+            .as_object()
+            .expect("json does not contain state object");
+        let time = state["time"]
+            .as_i64()
+            .expect("json state has no time; should be i64");
+        let position = state["position"]
+            .as_i64()
+            .expect("json state has no position; should be i64");
+
+        let player_manager = self.player_manager.read();
+
+        let player = match player_manager.get_player(&guild_id) {
+            Some(player) => player,
+            None => {
+                warn!(
+                    "got invalid audio player update for guild {:?}",
+                    guild_id,
+                );
+
+                return;
+            },
+        };
+
+        let mut player = player
+            .lock()
+            .expect("could not get access to player mutex");
+        player.time = time;
+        player.position = position;
+    }
+
+    fn handle_send_ws(&self, json: Value) {
+        let shard_id = json["shardId"]
+            .as_u64()
+            .expect("invalid json shardId - should be u64");
+        let message = json["message"]
+            .as_str()
+            .expect("invalid json message - should be str");
+
+        let shards = self.shards.lock();
+        let mut runners = shards.runners.lock();
+
+        if let Some(shard) = runners.get_mut(&ShardId(shard_id)) {
+            let text = OwnedMessage::Text(message.to_owned());
+            let msg = ShardClientMessage::Runner(
+                ShardRunnerMessage::Message(text)
+            );
+            let _ = shard.runner_tx.send(msg);
+        }
+    }
+
+    fn handle_state(&self, json: Value) {
+        let stats = serde_json::from_value(json)
+            .expect("Error parsing stats");
+
+        let mut state = self.recv_state.write();
+        state.stats = Some(stats);
+    }
+
+    fn handle_validation_request(&self, json: Value) {
+        let guild_id_str = json["guildId"]
+            .as_str()
+            .expect("invalid json guildId - should be str");
+        let channel_id_str = json["channelId"].as_str();
+
+        // serenity inserts guilds into the cache once it becomes available
+        // so i need to wait for the guild to become available before
+        // initiating the connection
+        //
+        // this should not be an issue once connections are issued via
+        // commands as the command cannot be handled before the guild is
+        // available :)
+        //
+        // for testing i have set it to always return true as lavalink will
+        // continuously send validation requests and voice state updates
+        // until it has a voice server update anyway
+
+        /*let valid = match GuildId(guild_id_u64).find() {
+            Some(_) => {
+                if let Some(channel_id) = channel_id_str {
+                    let channel_id = ChannelId(channel_id.parse::<u64>().unwrap());
+                    channel_id.find().is_some()
+                } else {
+                    true
+                }
+            },
+            None => false,
+        };*/
+        let valid = true; // todo remove
+
+        let msg = ValidationResponse::new(
+            guild_id_str,
+            channel_id_str,
+            valid,
+        ).into_ws_message();
+
+        if let Ok(msg) = msg {
+            let _ = self.ws_tx_1.send(msg);
         }
     }
 }
