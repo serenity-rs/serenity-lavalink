@@ -173,7 +173,7 @@ impl<'a> ReceiveLoop<'a> {
                     },
                 };
 
-                self.handle_opcode(json, opcode);
+                self.handle_opcode(json, &opcode);
             },
             // probably wont happen
             _ => {
@@ -184,21 +184,21 @@ impl<'a> ReceiveLoop<'a> {
         true
     }
 
-    fn handle_opcode(&self, json: Value, opcode: Opcode) {
+    fn handle_opcode(&self, json: Value, opcode: &Opcode) {
         use self::Opcode::*;
 
-        match opcode {
-            SendWS => self.handle_send_ws(json),
-            ValidationReq => self.handle_validation_request(json),
-            IsConnectedReq => self.handle_is_connected_request(json),
-            PlayerUpdate => self.handle_player_update(json),
+        match *opcode {
+            SendWS => self.handle_send_ws(&json),
+            ValidationReq => self.handle_validation_request(&json),
+            IsConnectedReq => self.handle_is_connected_request(&json),
+            PlayerUpdate => self.handle_player_update(&json),
             Stats => self.handle_state(json),
-            Event => self.handle_event(json),
+            Event => self.handle_event(&json),
             _ => return,
-        };
+        }
     }
 
-    fn handle_event(&self, json: Value) {
+    fn handle_event(&self, json: &Value) {
 
         let guild_id_str = json["guildId"]
             .as_str()
@@ -274,7 +274,7 @@ impl<'a> ReceiveLoop<'a> {
         }
     }
 
-    fn handle_is_connected_request(&self, json: Value) {
+    fn handle_is_connected_request(&self, json: &Value) {
         let shard_id = json["shardId"]
             .as_u64()
             .expect("invalid json shardId - should be u64");
@@ -290,7 +290,7 @@ impl<'a> ReceiveLoop<'a> {
         }
     }
 
-    fn handle_player_update(&self, json: Value) {
+    fn handle_player_update(&self, json: &Value) {
         let guild_id_str = json["guildId"]
             .as_str()
             .expect("expected json guildId - should be str");
@@ -328,7 +328,7 @@ impl<'a> ReceiveLoop<'a> {
         player.position = position;
     }
 
-    fn handle_send_ws(&self, json: Value) {
+    fn handle_send_ws(&self, json: &Value) {
         let shard_id = json["shardId"]
             .as_u64()
             .expect("invalid json shardId - should be u64");
@@ -356,7 +356,7 @@ impl<'a> ReceiveLoop<'a> {
         state.stats = Some(stats);
     }
 
-    fn handle_validation_request(&self, json: Value) {
+    fn handle_validation_request(&self, json: &Value) {
         let guild_id_str = json["guildId"]
             .as_str()
             .expect("invalid json guildId - should be str");
