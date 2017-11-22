@@ -1,6 +1,12 @@
-serenity-lavalink.iml
-.idea
+# editor
+.idea/
+.vscode/
+
+# rust
+target/
+*.bkp
+Cargo.toml
+
+# project
 .env
-Cargo.lock
-target
-.vscode/settings.json
+serenity-lavalink.iml
