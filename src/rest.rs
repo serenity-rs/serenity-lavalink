@@ -86,7 +86,7 @@ impl HttpClient {
     }
 
     #[allow(unused)]
-    pub fn decode_tracks(&self, tracks: Vec<String>) -> Result<Vec<LoadedTrack>> {
+    pub fn decode_tracks(&self, tracks: &[&str]) -> Result<Vec<LoadedTrack>> {
         let tracks = serde_json::to_vec(&tracks)?;
         let body = (tracks.as_ref(), ContentType::json());
 
