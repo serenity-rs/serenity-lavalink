@@ -22,6 +22,7 @@ impl Connect {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Disconnect {
     guild_id: String,
     op: Opcode,
@@ -37,6 +38,7 @@ impl Disconnect {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IsConnectedResponse {
     pub connected: bool,
     op: Opcode,
@@ -133,6 +135,7 @@ impl Stop {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ValidationResponse {
     pub channel_id: Option<String>,
     pub guild_id: String,
