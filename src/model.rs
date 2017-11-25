@@ -11,6 +11,16 @@ pub struct Connect {
     op: Opcode,
 }
 
+impl Connect {
+    pub fn new<S: Into<String>>(channel_id: S, guild_id: S) -> Self {
+        Self {
+            channel_id: channel_id.into(),
+            guild_id: guild_id.into(),
+            op: Opcode::Connect,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Disconnect {
     guild_id: String,
