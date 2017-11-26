@@ -1,5 +1,3 @@
-use ::model::{IntoWebSocketMessage, IsConnectedResponse, ValidationResponse};
-
 use parking_lot::{Mutex, RwLock};
 use serde_json;
 use serenity::client::bridge::gateway::{
@@ -24,6 +22,7 @@ use websocket::header::Headers;
 use websocket::receiver::Reader as WebSocketReader;
 use websocket::sender::Writer as WebSocketWriter;
 use websocket::{ClientBuilder, Message, OwnedMessage};
+use ::model::{IntoWebSocketMessage, IsConnectedResponse, ValidationResponse};
 use ::opcodes::Opcode;
 use ::prelude::*;
 
