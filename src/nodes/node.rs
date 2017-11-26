@@ -223,9 +223,7 @@ impl<'a> ReceiveLoop<'a> {
             }
         };
 
-        let mut player = player
-            .lock()
-            .expect("could not get access to player mutex");
+        let mut player = player.lock();
 
         match json["type"].as_str().expect("Err parsing type to str") {
             "TrackEndEvent" => {
@@ -320,9 +318,7 @@ impl<'a> ReceiveLoop<'a> {
             },
         };
 
-        let mut player = player
-            .lock()
-            .expect("could not get access to player mutex");
+        let mut player = player.lock();
         player.time = time;
         player.position = position;
     }
