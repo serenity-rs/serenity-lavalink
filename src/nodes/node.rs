@@ -22,8 +22,8 @@ use websocket::header::Headers;
 use websocket::receiver::Reader as WebSocketReader;
 use websocket::sender::Writer as WebSocketWriter;
 use websocket::{ClientBuilder, Message, OwnedMessage};
-use ::model::{IntoWebSocketMessage, IsConnectedResponse, ValidationResponse};
-use ::opcodes::Opcode;
+use lavalink::model::{IntoWebSocketMessage, IsConnectedResponse, ValidationResponse};
+use lavalink::opcodes::Opcode;
 use ::prelude::*;
 
 #[derive(Debug)]

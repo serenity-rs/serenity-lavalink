@@ -6,6 +6,7 @@ authors = ["sponges <spongybacon@hotmail.co.uk>", "Zeyla Hellyer <zey@zey.moe>"]
 [dependencies]
 evzht9h3nznqzwl = "0.0.3"
 hyper = "~0.10"
+lavalink = { git = "https://github.com/serenity-rs/lavalink.rs" }
 log = "~0.3"
 parking_lot = "^0.5"
 percent-encoding = "1.0.0"

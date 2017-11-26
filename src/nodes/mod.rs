@@ -4,8 +4,8 @@ mod node_manager;
 pub use self::node::Node;
 pub use self::node_manager::NodeManager;
 
-use super::player::*;
-use super::stats::*;
+use lavalink::player::*;
+use lavalink::stats::*;
 
 use parking_lot::{Mutex, RwLock};
 use serenity::client::bridge::gateway::ShardManager;
