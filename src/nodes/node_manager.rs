@@ -50,7 +50,7 @@ impl NodeManager {
             None => return Err(Error::StatsNotPresent),
         };
 
-        let cpu = 1.05f64.powf(100f64 * stats.system_load) * 10f64 - 10f64;
+        let cpu = 1.05f64.powf(100f64 * stats.cpu.system_load) * 10f64 - 10f64;
 
         let (deficit_frame, null_frame) = match stats.frame_stats {
             Some(frame_stats) => {

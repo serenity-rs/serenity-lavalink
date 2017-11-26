@@ -9,19 +9,28 @@ pub struct FrameStats {
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]
+pub struct MemoryStats {
+    pub free: i64,
+    pub used: i64,
+    pub allocated: i64,
+    pub reservable: i64,
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CpuStats {
+    pub cores: i32,
+    pub system_load: f64,
+    pub lavalink_load: f64,
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RemoteStats {
     pub players: i32,
     pub playing_players: i32,
     pub uptime: i64,
-
-    pub mem_free: i64,
-    pub mem_used: i64,
-    pub mem_allocated: i64,
-    pub mem_reservable: i64,
-
-    pub cpu_cores: i32,
-    pub system_load: f64,
-    pub lavalink_load: f64,
-
+    pub memory: MemoryStats,
+    pub cpu: CpuStats,
     pub frame_stats: Option<FrameStats>,
 }

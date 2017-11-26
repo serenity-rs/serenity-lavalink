@@ -344,11 +344,13 @@ impl<'a> ReceiveLoop<'a> {
     }
 
     fn handle_state(&self, json: Value) {
-        let stats = serde_json::from_value(json)
-            .expect("Error parsing stats");
-
-        let mut state = self.recv_state.write();
-        state.stats = Some(stats);
+        match serde_json::from_value(json) {
+            Ok(stats) => {
+                let mut state = self.recv_state.write();
+                state.stats = Some(stats);
+            },
+            Err(e) => println!("Error parsing stats! {:?}", e),
+        }
     }
 
     fn handle_validation_request(&self, json: &Value) {
