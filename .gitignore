@@ -5,7 +5,7 @@
 # rust
 target/
 *.bkp
-Cargo.toml
+Cargo.lock
 
 # project
 .env
