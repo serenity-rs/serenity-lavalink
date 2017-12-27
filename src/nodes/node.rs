@@ -172,6 +172,8 @@ impl<'a> ReceiveLoop<'a> {
                     },
                 };
 
+                debug!("Receive loop msg with opcode: {:?}", &opcode);
+
                 self.handle_opcode(json, &opcode);
             },
             // probably wont happen
@@ -236,10 +238,8 @@ impl<'a> ReceiveLoop<'a> {
                 player.track = None;
                 player.time = 0;
                 player.position = 0;
-
-                for listener in &player.listeners {
-                    (listener.on_track_end)(&player, track, reason);
-                }
+                
+                self.player_manager.read().listener.track_end(&player, track, reason);
             },
             "TrackExceptionEvent" => {
                 let error = json["error"]
@@ -248,22 +248,14 @@ impl<'a> ReceiveLoop<'a> {
 
                 // TODO: determine if should keep playing
 
-                for listener in &player.listeners {
-                    (listener.on_track_exception)(&player, track, error);
-                }
+                self.player_manager.read().listener.track_exception(&player, track, error);
             },
             "TrackStuckEvent" => {
                 let threshold_ms = json["thresholdMs"]
                     .as_i64()
                     .expect("invalid json thresholdMs - should be i64");
 
-                for listener in &player.listeners {
-                    (listener.on_track_stuck)(
-                        &player,
-                        track,
-                        threshold_ms,
-                    );
-                }
+                self.player_manager.read().listener.track_stuck(&player, track, threshold_ms);
             },
             other => {
                 warn!("Unexpected event type: {}", other);
