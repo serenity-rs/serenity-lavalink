@@ -12,7 +12,7 @@ pub struct NodeManager {
 }
 
 impl NodeManager {
-    pub fn new(listener: Arc<Box<AudioPlayerListener>>) -> Self {
+    pub fn new(listener: Arc<AudioPlayerListener>) -> Self {
         Self {
             nodes: Arc::new(RwLock::new(Vec::default())),
             player_manager: Arc::new(RwLock::new(AudioPlayerManager::new(listener))),
