@@ -239,7 +239,7 @@ impl<'a> ReceiveLoop<'a> {
                 player.time = 0;
                 player.position = 0;
                 
-                self.player_manager.read().listener.track_end(&player, track, reason);
+                self.player_manager.read().listener.track_end(&mut player, track, reason);
             },
             "TrackExceptionEvent" => {
                 let error = json["error"]
@@ -248,14 +248,14 @@ impl<'a> ReceiveLoop<'a> {
 
                 // TODO: determine if should keep playing
 
-                self.player_manager.read().listener.track_exception(&player, track, error);
+                self.player_manager.read().listener.track_exception(&mut player, track, error);
             },
             "TrackStuckEvent" => {
                 let threshold_ms = json["thresholdMs"]
                     .as_i64()
                     .expect("invalid json thresholdMs - should be i64");
 
-                self.player_manager.read().listener.track_stuck(&player, track, threshold_ms);
+                self.player_manager.read().listener.track_stuck(&mut player, track, threshold_ms);
             },
             other => {
                 warn!("Unexpected event type: {}", other);
