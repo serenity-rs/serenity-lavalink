@@ -5,6 +5,7 @@ use serenity::client::bridge::gateway::{
     ShardId,
     ShardRunnerMessage,
 };
+use serenity::gateway::InterMessage;
 use std::net::TcpStream;
 use std::str::FromStr;
 use std::sync::mpsc::{self, Receiver as MpscReceiver, Sender as MpscSender};
@@ -238,7 +239,7 @@ impl<'a> ReceiveLoop<'a> {
                 player.track = None;
                 player.time = 0;
                 player.position = 0;
-                
+
                 self.player_manager.read().listener.track_end(&mut player, track, reason);
             },
             "TrackExceptionEvent" => {
@@ -328,9 +329,10 @@ impl<'a> ReceiveLoop<'a> {
 
         if let Some(shard) = runners.get_mut(&ShardId(shard_id)) {
             let text = OwnedMessage::Text(message.to_owned());
-            let msg = ShardClientMessage::Runner(
+            let client_msg = ShardClientMessage::Runner(
                 ShardRunnerMessage::Message(text)
             );
+            let msg = InterMessage::Client(client_msg);
             let _ = shard.runner_tx.send(msg);
         }
     }
