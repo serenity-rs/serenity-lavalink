@@ -5,7 +5,6 @@ authors = ["sponges <spongybacon@hotmail.co.uk>", "Zeyla Hellyer <zey@zey.moe>"]
 
 [dependencies]
 hyper = "~0.10"
-lavalink = { git = "https://github.com/serenity-rs/lavalink.rs" }
 log = "~0.4"
 parking_lot = "~0.5"
 percent-encoding = "^1.0"
@@ -17,6 +16,11 @@ serde_derive = "^1.0"
 default-features = false
 features = ["sync-ssl"]
 version = "0.0.3"
+
+[dependencies.lavalink]
+default-features = false
+features = ["reqwest-support"]
+git = "https://github.com/serenity-rs/lavalink.rs"
 
 [dependencies.serenity]
 default-features = false
