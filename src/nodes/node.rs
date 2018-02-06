@@ -23,7 +23,7 @@ use websocket::header::Headers;
 use websocket::receiver::Reader as WebSocketReader;
 use websocket::sender::Writer as WebSocketWriter;
 use websocket::{ClientBuilder, Message, OwnedMessage};
-use lavalink::model::{IntoWebSocketMessage, IsConnectedResponse, ValidationResponse};
+use lavalink::model::{IsConnectedResponse, ValidationResponse};
 use lavalink::opcodes::Opcode;
 use ::prelude::*;
 
@@ -270,13 +270,13 @@ impl<'a> ReceiveLoop<'a> {
             .expect("invalid json shardId - should be u64");
         let shards = self.shards.lock();
 
-        let msg = IsConnectedResponse::new(
+        let msg = serde_json::to_vec(&IsConnectedResponse::new(
             shard_id,
             shards.has(ShardId(shard_id)),
-        ).into_ws_message();
+        ));
 
         if let Ok(msg) = msg {
-            let _ = self.ws_tx_1.send(msg);
+            let _ = self.ws_tx_1.send(OwnedMessage::Binary(msg));
         }
     }
 
@@ -378,14 +378,14 @@ impl<'a> ReceiveLoop<'a> {
         };*/
         let valid = true; // todo remove
 
-        let msg = ValidationResponse::new(
+        let msg = serde_json::to_vec(&ValidationResponse::new(
             guild_id_str,
             channel_id_str,
             valid,
-        ).into_ws_message();
+        ));
 
         if let Ok(msg) = msg {
-            let _ = self.ws_tx_1.send(msg);
+            let _ = self.ws_tx_1.send(OwnedMessage::Binary(msg));
         }
     }
 }
