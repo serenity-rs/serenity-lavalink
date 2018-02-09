@@ -1,11 +1,5 @@
 use parking_lot::{Mutex, RwLock};
 use serde_json;
-use serenity::client::bridge::gateway::{
-    ShardClientMessage,
-    ShardId,
-    ShardRunnerMessage,
-};
-use serenity::gateway::InterMessage;
 use std::net::TcpStream;
 use std::str::FromStr;
 use std::sync::mpsc::{self, Receiver as MpscReceiver, Sender as MpscSender};
@@ -16,14 +10,12 @@ use super::{
     NodeConfig,
     NodeSender,
     NodeState,
-    SerenityShardManager,
     State,
 };
 use websocket::header::Headers;
 use websocket::receiver::Reader as WebSocketReader;
 use websocket::sender::Writer as WebSocketWriter;
 use websocket::{ClientBuilder, Message, OwnedMessage};
-use lavalink::model::{IsConnectedResponse, ValidationResponse};
 use lavalink::opcodes::Opcode;
 use ::prelude::*;
 
@@ -37,7 +29,7 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn connect(config: &NodeConfig, shards: SerenityShardManager, player_manager: NodeAudioPlayerManager) -> Result<Self> {
+    pub fn connect(config: &NodeConfig, player_manager: NodeAudioPlayerManager) -> Result<Self> {
         let mut headers = Headers::new();
         headers.set_raw("Authorization", vec![config.password.clone().as_bytes().to_vec()]);
         headers.set_raw("Num-Shards", vec![config.num_shards.to_string().as_bytes().to_vec()]);
@@ -70,7 +62,6 @@ impl Node {
                 player_manager: &player_manager,
                 receiver: &mut receiver,
                 recv_state: &recv_state,
-                shards: &shards,
                 ws_tx_1: &ws_tx_1,
             }.run();
         }).unwrap();
@@ -100,7 +91,6 @@ impl Node {
 struct ReceiveLoop<'a> {
     receiver: &'a mut WebSocketReader<TcpStream>,
     ws_tx_1: &'a MpscSender<OwnedMessage>,
-    shards: &'a SerenityShardManager,
     recv_state: &'a NodeState,
     player_manager: &'a NodeAudioPlayerManager,
 }
@@ -190,9 +180,6 @@ impl<'a> ReceiveLoop<'a> {
         use self::Opcode::*;
 
         match *opcode {
-            SendWS => self.handle_send_ws(&json),
-            ValidationReq => self.handle_validation_request(&json),
-            IsConnectedReq => self.handle_is_connected_request(&json),
             PlayerUpdate => self.handle_player_update(&json),
             Stats => self.handle_state(json),
             Event => self.handle_event(&json),
@@ -264,22 +251,6 @@ impl<'a> ReceiveLoop<'a> {
         }
     }
 
-    fn handle_is_connected_request(&self, json: &Value) {
-        let shard_id = json["shardId"]
-            .as_u64()
-            .expect("invalid json shardId - should be u64");
-        let shards = self.shards.lock();
-
-        let msg = serde_json::to_vec(&IsConnectedResponse::new(
-            shard_id,
-            shards.has(ShardId(shard_id)),
-        ));
-
-        if let Ok(msg) = msg {
-            let _ = self.ws_tx_1.send(OwnedMessage::Binary(msg));
-        }
-    }
-
     fn handle_player_update(&self, json: &Value) {
         let guild_id_str = json["guildId"]
             .as_str()
@@ -316,27 +287,6 @@ impl<'a> ReceiveLoop<'a> {
         player.position = position;
     }
 
-    fn handle_send_ws(&self, json: &Value) {
-        let shard_id = json["shardId"]
-            .as_u64()
-            .expect("invalid json shardId - should be u64");
-        let message = json["message"]
-            .as_str()
-            .expect("invalid json message - should be str");
-
-        let shards = self.shards.lock();
-        let mut runners = shards.runners.lock();
-
-        if let Some(shard) = runners.get_mut(&ShardId(shard_id)) {
-            let text = OwnedMessage::Text(message.to_owned());
-            let client_msg = ShardClientMessage::Runner(
-                ShardRunnerMessage::Message(text)
-            );
-            let msg = InterMessage::Client(client_msg);
-            let _ = shard.runner_tx.send(msg);
-        }
-    }
-
     fn handle_state(&self, json: Value) {
         match serde_json::from_value(json) {
             Ok(stats) => {
@@ -344,48 +294,6 @@ impl<'a> ReceiveLoop<'a> {
                 state.stats = Some(stats);
             },
             Err(e) => println!("Error parsing stats! {:?}", e),
-        }
-    }
-
-    fn handle_validation_request(&self, json: &Value) {
-        let guild_id_str = json["guildId"]
-            .as_str()
-            .expect("invalid json guildId - should be str");
-        let channel_id_str = json["channelId"].as_str();
-
-        // serenity inserts guilds into the cache once it becomes available
-        // so i need to wait for the guild to become available before
-        // initiating the connection
-        //
-        // this should not be an issue once connections are issued via
-        // commands as the command cannot be handled before the guild is
-        // available :)
-        //
-        // for testing i have set it to always return true as lavalink will
-        // continuously send validation requests and voice state updates
-        // until it has a voice server update anyway
-
-        /*let valid = match GuildId(guild_id_u64).find() {
-            Some(_) => {
-                if let Some(channel_id) = channel_id_str {
-                    let channel_id = ChannelId(channel_id.parse::<u64>().unwrap());
-                    channel_id.find().is_some()
-                } else {
-                    true
-                }
-            },
-            None => false,
-        };*/
-        let valid = true; // todo remove
-
-        let msg = serde_json::to_vec(&ValidationResponse::new(
-            guild_id_str,
-            channel_id_str,
-            valid,
-        ));
-
-        if let Ok(msg) = msg {
-            let _ = self.ws_tx_1.send(OwnedMessage::Binary(msg));
         }
     }
 }

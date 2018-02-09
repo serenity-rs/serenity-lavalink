@@ -2,7 +2,7 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 use lavalink::listener::AudioPlayerListener;
 use lavalink::player::*;
-use super::{Node, NodeAudioPlayerManager, NodeConfig, SerenityShardManager};
+use super::{Node, NodeAudioPlayerManager, NodeConfig};
 use ::prelude::*;
 
 #[derive(Clone, Debug)]
@@ -19,9 +19,9 @@ impl NodeManager {
         }
     }
 
-    pub fn add_node(&mut self, config: &NodeConfig, manager: SerenityShardManager)
+    pub fn add_node(&mut self, config: &NodeConfig)
         -> Result<()> {
-        let node = Node::connect(config, manager, Arc::clone(&self.player_manager));
+        let node = Node::connect(config, Arc::clone(&self.player_manager));
 
         let mut nodes = self.nodes.write();
         nodes.push(Arc::new(node?));
