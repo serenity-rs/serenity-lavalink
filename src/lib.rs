@@ -11,8 +11,11 @@ extern crate serde_json;
 extern crate serenity;
 
 pub mod nodes;
+pub mod player;
 
 mod error;
+mod listener;
 mod prelude;
 
 pub use error::{Error, Result};
+pub use listener::AudioPlayerListener;

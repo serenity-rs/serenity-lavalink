@@ -4,7 +4,7 @@ mod node_manager;
 pub use self::node::Node;
 pub use self::node_manager::NodeManager;
 
-use lavalink::player::*;
+use player::*;
 use lavalink::stats::*;
 
 use parking_lot::{Mutex, RwLock};

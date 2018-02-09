@@ -1,7 +1,7 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
-use lavalink::listener::AudioPlayerListener;
-use lavalink::player::*;
+use listener::AudioPlayerListener;
+use player::*;
 use super::{Node, NodeAudioPlayerManager, NodeConfig};
 use ::prelude::*;
 
